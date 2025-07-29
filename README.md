@@ -394,28 +394,41 @@ Error: Module not found
 3. **Database Indexing**: Add indexes on frequently queried fields
 4. **API Caching**: Implement Redis for API response caching
 
-## 🚀 Deployment
+## 🚀 Local Development & Setup
 
-### Vercel (Recommended)
+### Running the Application
 
-1. **Connect Repository**
+1. **Install Dependencies**
    ```bash
-   # Install Vercel CLI
-   npm i -g vercel
-   
-   # Deploy
-   vercel
+   npm install
+   # or
+   pnpm install
    ```
 
-2. **Environment Variables**
-   - Add all `.env.local` variables to Vercel dashboard
-   - Update `NEXTAUTH_URL` to your production domain
+2. **Setup Environment Variables**
+   - Copy `.env.example` to `.env.local`
+   - Fill in your actual values for MongoDB, API keys, etc.
 
-### Other Platforms
+3. **Start Development Server**
+   ```bash
+   npm run dev
+   # or
+   pnpm dev
+   ```
 
-- **Netlify**: Configure build settings and environment variables
-- **Railway**: Deploy with automatic environment variable detection
-- **DigitalOcean**: Use App Platform for easy deployment
+4. **Access the Application**
+   - Frontend: http://localhost:3000
+   - API Routes: http://localhost:3000/api/*
+
+### Production Build (Local)
+
+```bash
+# Build the application
+npm run build
+
+# Start production server
+npm start
+```
 
 ## 🤝 Contributing
 
@@ -446,7 +459,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🙏 Acknowledgments
 
 - **Next.js Team** for the amazing framework
-- **Vercel** for hosting and deployment tools
 - **shadcn/ui** for beautiful component library
 - **MongoDB** for robust database solutions
 - **Google AI** for Gemini API
