@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/next"
+    }
+  ],
+  "env": {
+    "MONGODB_URI": "@mongodb_uri",
+    "OCR_API_KEY": "@ocr_api_key",
+    "GEMINI_API_KEY": "@gemini_api_key",
+    "COLLEGE_LATITUDE": "@college_latitude",
+    "COLLEGE_LONGITUDE": "@college_longitude"
+  }
+}
