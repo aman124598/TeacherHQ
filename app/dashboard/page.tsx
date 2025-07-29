@@ -24,11 +24,6 @@ import TodoList from "@/components/todo-list"
 import { calculateDistance } from "@/lib/distance-calculator"
 import { Progress } from "@/components/ui/progress"
 
-const COLLEGE_LOCATION = {
-  latitude: 13.072204074042398,
-  longitude: 77.50754474895987,
-}
-
 export default function Dashboard() {
   const router = useRouter()
   const [teacher, setTeacher] = useState<any>(null)
@@ -41,6 +36,7 @@ export default function Dashboard() {
   const [locationError, setLocationError] = useState<string | null>(null)
   const [isMounted, setIsMounted] = useState(false)
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([])
+  const [collegeLocation, setCollegeLocation] = useState({ latitude: 0, longitude: 0 })
 
   // Sample attendance stats
   const attendanceStats = {
@@ -90,6 +86,23 @@ export default function Dashboard() {
 
       setUpcomingEvents(upcoming)
     }
+
+    // Fetch college location from API
+    const fetchCollegeLocation = async () => {
+      try {
+        const response = await fetch('/api/config/location')
+        const data = await response.json()
+        if (data.success) {
+          setCollegeLocation(data.location)
+        }
+      } catch (error) {
+        console.error('Error fetching college location:', error)
+        // Fallback to default location
+        setCollegeLocation({ latitude: 13.072204074042398, longitude: 77.50754474895987 })
+      }
+    }
+
+    fetchCollegeLocation()
   }, [router])
 
   const getLocation = () => {
@@ -109,8 +122,8 @@ export default function Dashboard() {
         const { distanceInMeters, isWithinRange } = calculateDistance(
           userLat,
           userLng,
-          COLLEGE_LOCATION.latitude,
-          COLLEGE_LOCATION.longitude,
+          collegeLocation.latitude,
+          collegeLocation.longitude,
         )
 
         setCurrentLocation({

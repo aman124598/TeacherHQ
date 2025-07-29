@@ -25,10 +25,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 
-// Replace with your secure keys - these would normally be environment variables
-const OCR_API_KEY = "K89469803888957"
-const GEMINI_API_KEY = "AIzaSyBGR9Y2TgP8nt2KYrPdbJ5BAA-WGE_bGyk"
-
 interface NoteItem {
   type: string
   key?: string
@@ -173,51 +169,42 @@ export default function Notes() {
     }
   }
 
-  // Function to extract text from PDF using OCR.Space
+  // Function to extract text from PDF using OCR.Space via API route
   const extractTextFromPDF = async (pdfFile: File): Promise<string> => {
     const formData = new FormData()
-    formData.append("file", pdfFile)
-    formData.append("language", "eng")
-    formData.append("isOverlayRequired", "false")
+    formData.append('file', pdfFile)
 
-    const response = await fetch("https://api.ocr.space/parse/image", {
-      method: "POST",
-      headers: {
-        apikey: OCR_API_KEY,
-      },
+    const response = await fetch('/api/notes/ocr', {
+      method: 'POST',
       body: formData,
     })
+
     const result = await response.json()
-    return result?.ParsedResults?.[0]?.ParsedText || ""
+    
+    if (!result.success) {
+      throw new Error(result.message || 'Failed to extract text from PDF')
+    }
+    
+    return result.extractedText
   }
 
-  // Function to generate short notes using Gemini API
+  // Function to generate short notes using Gemini API via API route
   const generateWithGemini = async (text: string): Promise<string> => {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`
-
-    const body = {
-      contents: [
-        {
-          parts: [
-            {
-              text: `Create detailed notes from the give text:\n\n${text}`,
-            },
-          ],
-        },
-      ],
-    }
-
-    const response = await fetch(url, {
-      method: "POST",
+    const response = await fetch('/api/notes/generate', {
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ text }),
     })
 
     const data = await response.json()
-    // Extract the notes text from the Gemini response
-    return data?.candidates?.[0]?.content?.parts?.[0]?.text || ""
+    
+    if (!data.success) {
+      throw new Error(data.message || 'Failed to generate notes')
+    }
+    
+    return data.generatedNotes
   }
 
   // Main handler for form submission
