@@ -135,11 +135,42 @@
   border-radius: 4px;
 }
 
+.dark ::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
 ::-webkit-scrollbar-thumb {
   background: #94a3b8;
   border-radius: 4px;
 }
 
+.dark ::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
 ::-webkit-scrollbar-thumb:hover {
   background: #64748b;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* Dark mode custom gradients */
+.dark .bg-gradient-blue {
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+}
+
+/* Hover card effects */
+.hover-card {
+  transition: all 0.3s ease;
+}
+
+.hover-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.dark .hover-card:hover {
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
 }

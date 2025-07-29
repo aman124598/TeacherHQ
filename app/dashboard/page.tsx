@@ -52,10 +52,16 @@ export default function Dashboard() {
 
   useEffect(() => {
     setIsMounted(true)
+    
+    // Ensure we're on the client side
+    if (typeof window === 'undefined') return
+    
     // Get teacher data from localStorage
     const teacherData = localStorage.getItem("teacherData")
     if (!teacherData) {
-      router.push("/dashboard")
+      // Clear authentication cookie if no teacher data
+      document.cookie = "teacher_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT"
+      router.push("/")
       return
     }
 
@@ -169,15 +175,15 @@ export default function Dashboard() {
   const getBadgeColor = (type: string) => {
     switch (type) {
       case "exam":
-        return "bg-red-100 text-red-800 border-red-200"
+        return "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-300 border-red-200 dark:border-red-800"
       case "meeting":
-        return "bg-blue-100 text-blue-800 border-blue-200"
+        return "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800"
       case "holiday":
-        return "bg-green-100 text-green-800 border-green-200"
+        return "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300 border-green-200 dark:border-green-800"
       case "other":
-        return "bg-purple-100 text-purple-800 border-purple-200"
+        return "bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-300 border-purple-200 dark:border-purple-800"
       default:
-        return "bg-gray-100 text-gray-800 border-gray-200"
+        return "bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-300 border-gray-200 dark:border-gray-800"
     }
   }
 
@@ -187,10 +193,10 @@ export default function Dashboard() {
     <div className="container mx-auto px-4 py-8 animate-fade-in">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {/* Welcome Card */}
-        <Card className="md:col-span-2 hover-card border-l-4 border-l-blue-500">
+        <Card className="md:col-span-2 hover-card border-l-4 border-l-blue-500 dark:border-l-blue-400 dark:bg-slate-800 dark:border-slate-700">
           <CardHeader className="pb-2">
-            <CardTitle className="text-2xl">Welcome back, {teacher?.Name || "Teacher"}!</CardTitle>
-            <CardDescription>Here's an overview of your day</CardDescription>
+            <CardTitle className="text-2xl dark:text-white">Welcome back, {teacher?.Name || "Teacher"}!</CardTitle>
+            <CardDescription className="dark:text-slate-400">Here's an overview of your day</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-2">

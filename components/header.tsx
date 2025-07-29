@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { LogOut, Menu, Home, Calendar, BarChart, FileText, Bell, Star } from "lucide-react"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Badge } from "@/components/ui/badge"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 export default function Header() {
   const pathname = usePathname()
@@ -40,6 +41,8 @@ export default function Header() {
 
   const handleLogout = () => {
     localStorage.removeItem("teacherData")
+    // Clear authentication cookie
+    document.cookie = "teacher_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT"
     window.location.href = "/"
   }
 
@@ -54,18 +57,18 @@ export default function Header() {
   if (!isMounted) return null
 
   return (
-    <header className="bg-gradient-blue text-white shadow-md">
+    <header className="bg-gradient-blue dark:bg-gradient-to-r dark:from-slate-900 dark:to-slate-800 text-white shadow-md">
       <div className="container mx-auto px-4 py-4">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-4">
-            <Avatar className="h-10 w-10 bg-white text-blue-800 border-2 border-white shadow-sm">
+            <Avatar className="h-10 w-10 bg-white dark:bg-slate-700 text-blue-800 dark:text-white border-2 border-white dark:border-slate-600 shadow-sm">
               <AvatarFallback>{teacher?.Name ? teacher.Name.charAt(0) : "T"}</AvatarFallback>
             </Avatar>
             <div className="hidden md:block">
               <h1 className="text-lg font-semibold">
                 {getGreeting()}, {teacher?.Name || "Teacher"}
               </h1>
-              <p className="text-xs text-blue-100">{currentTime.toLocaleString()}</p>
+              <p className="text-xs text-blue-100 dark:text-slate-300">{currentTime.toLocaleString()}</p>
             </div>
           </div>
 
@@ -89,6 +92,7 @@ export default function Header() {
                 )}
               </Link>
             ))}
+            <ThemeToggle />
             <Button
               variant="outline"
               size="sm"
@@ -102,6 +106,7 @@ export default function Header() {
 
           {/* Mobile Navigation */}
           <div className="flex items-center gap-2 md:hidden">
+            <ThemeToggle />
             <Button variant="ghost" size="icon" className="text-white">
               <Bell className="h-5 w-5" />
             </Button>
