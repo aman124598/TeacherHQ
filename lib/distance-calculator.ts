@@ -21,7 +21,9 @@ export function calculateDistance(
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   const distanceInMeters = earthRadius * c;
 
-  const isWithinRange = distanceInMeters <= 550; // Allow a buffer of 50 meters
+  // Allow a larger range and add development bypass
+  const maxDistance = 700; // Increased from 550m to 700m
+  const isWithinRange = distanceInMeters <= maxDistance || process.env.NODE_ENV !== 'production';
 
   console.log("User Latitude:", userLat);
   console.log("User Longitude:", userLng);

@@ -105,6 +105,14 @@ export default function Dashboard() {
     fetchCollegeLocation()
   }, [router])
 
+  // Return greeting based on local time
+  const getGreeting = () => {
+    const hour = new Date().getHours()
+    if (hour < 12) return "Good morning"
+    if (hour < 17) return "Good afternoon"
+    return "Good evening"
+  }
+
   const getLocation = () => {
     setLocationError(null)
 
@@ -208,7 +216,7 @@ export default function Dashboard() {
         {/* Welcome Card */}
         <Card className="md:col-span-2 hover-card border-l-4 border-l-blue-500 dark:border-l-blue-400 dark:bg-slate-800 dark:border-slate-700">
           <CardHeader className="pb-2">
-            <CardTitle className="text-2xl dark:text-white">Welcome back, {teacher?.Name || "Teacher"}!</CardTitle>
+            <CardTitle className="text-2xl dark:text-white">{getGreeting()}, {teacher?.Name || "Teacher"}!</CardTitle>
             <CardDescription className="dark:text-slate-400">Here's an overview of your day</CardDescription>
           </CardHeader>
           <CardContent>
@@ -302,7 +310,7 @@ export default function Dashboard() {
                   <div>
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
-                      You must be within 500 meters of the college to mark attendance. Current distance:{" "}
+                      You must be within 700 meters of the college to mark attendance. Current distance:{" "}
                       {Math.round(currentLocation.distance)}m
                     </AlertDescription>
                   </div>

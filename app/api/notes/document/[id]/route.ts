@@ -11,7 +11,7 @@ const connectToDatabase = async () => {
     if (isConnected) return
 
     try {
-        await mongoose.connect(process.env.MONGODB_URI || "mongodb://localhost:27017/teacher_databse")
+    await mongoose.connect(process.env.MONGODB_URI || "mongodb+srv://amanraj89969:password@cluster0.5khmm.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
         isConnected = true
         console.log("Connected to MongoDB")
     } catch (error) {
