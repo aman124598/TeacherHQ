@@ -42,20 +42,27 @@ export default function Statistics() {
 
   return (
     <div className="container mx-auto px-4 py-8 animate-fade-in">
-      <div className="flex items-center mb-6">
-        <BarChart4 className="h-6 w-6 mr-2 text-blue-600" />
-        <h1 className="text-2xl font-bold">Attendance Statistics</h1>
+      <div className="flex items-center mb-8">
+        <div className="p-3 bg-gradient-green rounded-xl mr-4 shadow-lg">
+          <BarChart4 className="h-7 w-7 text-white" />
+        </div>
+        <div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-teal-600 bg-clip-text text-transparent">
+            Attendance Statistics
+          </h1>
+          <p className="text-muted-foreground">Track your attendance performance</p>
+        </div>
       </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <Card className="hover-card border-l-4 border-l-blue-500">
+        <Card className="hover-card border-l-4 border-l-blue-500 dark:bg-slate-800/50 dark:border-slate-700">
           <CardContent className="pt-6">
             <div className="flex justify-between items-center mb-2">
               <span className="text-sm font-medium text-muted-foreground">Present Days</span>
               <CheckCircle className="h-5 w-5 text-green-500" />
             </div>
-            <div className="text-3xl font-bold">{attendanceData.present}</div>
+            <div className="text-3xl font-bold dark:text-white">{attendanceData.present}</div>
             <Progress
               value={(attendanceData.present / (attendanceData.present + attendanceData.absent)) * 100}
               className="h-1.5 mt-2"
@@ -63,27 +70,27 @@ export default function Statistics() {
           </CardContent>
         </Card>
 
-        <Card className="hover-card border-l-4 border-l-red-500">
+        <Card className="hover-card border-l-4 border-l-red-500 dark:bg-slate-800/50 dark:border-slate-700">
           <CardContent className="pt-6">
             <div className="flex justify-between items-center mb-2">
               <span className="text-sm font-medium text-muted-foreground">Absent Days</span>
               <XCircle className="h-5 w-5 text-red-500" />
             </div>
-            <div className="text-3xl font-bold">{attendanceData.absent}</div>
+            <div className="text-3xl font-bold dark:text-white">{attendanceData.absent}</div>
             <Progress
               value={(attendanceData.absent / (attendanceData.present + attendanceData.absent)) * 100}
-              className="h-1.5 mt-2 bg-red-100"
+              className="h-1.5 mt-2 bg-red-100 dark:bg-red-900/30"
             />
           </CardContent>
         </Card>
 
-        <Card className="hover-card border-l-4 border-l-green-500">
+        <Card className="hover-card border-l-4 border-l-green-500 dark:bg-slate-800/50 dark:border-slate-700">
           <CardContent className="pt-6">
             <div className="flex justify-between items-center mb-2">
               <span className="text-sm font-medium text-muted-foreground">Attendance Rate</span>
               <Calendar className="h-5 w-5 text-blue-500" />
             </div>
-            <div className="text-3xl font-bold">
+            <div className="text-3xl font-bold dark:text-white">
               {Math.round((attendanceData.present / (attendanceData.present + attendanceData.absent)) * 100)}%
             </div>
             <div className="text-sm text-muted-foreground mt-2">
@@ -92,40 +99,40 @@ export default function Statistics() {
           </CardContent>
         </Card>
 
-        <Card className="hover-card border-l-4 border-l-purple-500">
+        <Card className="hover-card border-l-4 border-l-purple-500 dark:bg-slate-800/50 dark:border-slate-700">
           <CardContent className="pt-6">
             <div className="flex justify-between items-center mb-2">
               <span className="text-sm font-medium text-muted-foreground">Leaves Left</span>
               <Clock className="h-5 w-5 text-purple-500" />
             </div>
-            <div className="text-3xl font-bold">{attendanceData.leaveLeft}</div>
+            <div className="text-3xl font-bold dark:text-white">{attendanceData.leaveLeft}</div>
             <div className="text-sm text-muted-foreground mt-2">Out of {attendanceData.totalLeaves} allowed</div>
           </CardContent>
         </Card>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="hover-card">
+        <Card className="hover-card dark:bg-slate-800/50 dark:border-slate-700">
           <CardHeader>
-            <CardTitle>Monthly Attendance</CardTitle>
+            <CardTitle className="dark:text-white">Monthly Attendance</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
               {attendanceData.monthlyData.map((month, index) => (
                 <div key={index}>
                   <div className="flex justify-between items-center mb-2">
-                    <span className="font-medium">{month.month}</span>
+                    <span className="font-medium dark:text-slate-200">{month.month}</span>
                     <div className="text-sm text-muted-foreground">
                       {month.present} present, {month.absent} absent
                     </div>
                   </div>
-                  <div className="flex h-2 mb-1">
+                  <div className="flex h-2 mb-1 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                     <div
                       className="bg-green-500 rounded-l-full"
                       style={{ width: `${(month.present / (month.present + month.absent)) * 100}%` }}
                     />
                     <div
-                      className="bg-red-400 rounded-r-full"
+                      className="bg-red-400"
                       style={{ width: `${(month.absent / (month.present + month.absent)) * 100}%` }}
                     />
                   </div>
@@ -135,21 +142,21 @@ export default function Statistics() {
           </CardContent>
         </Card>
 
-        <Card className="hover-card">
+        <Card className="hover-card dark:bg-slate-800/50 dark:border-slate-700">
           <CardHeader>
-            <CardTitle>Monthly Calendar</CardTitle>
+            <CardTitle className="dark:text-white">Monthly Calendar</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-7 gap-2">
               {Array.from({ length: 30 }, (_, i) => (
                 <div
                   key={i}
-                  className={`h-10 rounded-md flex items-center justify-center text-sm ${
+                  className={`h-10 rounded-md flex items-center justify-center text-sm font-medium ${
                     i % 7 === 0 || i % 7 === 6
-                      ? "bg-gray-100 text-gray-400" // Weekend
+                      ? "bg-gray-100 text-gray-400 dark:bg-slate-700 dark:text-slate-500" // Weekend
                       : i % 3 === 0
-                        ? "bg-red-100 text-red-800" // Absent
-                        : "bg-green-100 text-green-800" // Present
+                        ? "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-400" // Absent
+                        : "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-400" // Present
                   }`}
                 >
                   {i + 1}
@@ -160,21 +167,21 @@ export default function Statistics() {
         </Card>
       </div>
 
-      <Card className="mt-6 hover-card">
+      <Card className="mt-6 hover-card dark:bg-slate-800/50 dark:border-slate-700">
         <CardHeader>
-          <CardTitle>Attendance Overview</CardTitle>
+          <CardTitle className="dark:text-white">Attendance Overview</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <span className="flex items-center">
+                <span className="flex items-center dark:text-slate-200">
                   <span className="w-3 h-3 bg-green-500 rounded-full inline-block mr-2"></span>
                   Present Days
                 </span>
-                <span>{attendanceData.present}</span>
+                <span className="dark:text-white">{attendanceData.present}</span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2.5">
+              <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-2.5">
                 <div
                   className="bg-green-500 h-2.5 rounded-full"
                   style={{
@@ -186,13 +193,13 @@ export default function Statistics() {
 
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <span className="flex items-center">
+                <span className="flex items-center dark:text-slate-200">
                   <span className="w-3 h-3 bg-red-500 rounded-full inline-block mr-2"></span>
                   Absent Days
                 </span>
-                <span>{attendanceData.absent}</span>
+                <span className="dark:text-white">{attendanceData.absent}</span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2.5">
+              <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-2.5">
                 <div
                   className="bg-red-500 h-2.5 rounded-full"
                   style={{
@@ -204,13 +211,13 @@ export default function Statistics() {
 
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <span className="flex items-center">
+                <span className="flex items-center dark:text-slate-200">
                   <span className="w-3 h-3 bg-blue-500 rounded-full inline-block mr-2"></span>
                   Leave Left
                 </span>
-                <span>{attendanceData.leaveLeft}</span>
+                <span className="dark:text-white">{attendanceData.leaveLeft}</span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2.5">
+              <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-2.5">
                 <div
                   className="bg-blue-500 h-2.5 rounded-full"
                   style={{

@@ -24,6 +24,7 @@ import {
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { useAuth } from "@/lib/firebase/AuthContext"
 
 interface NoteItem {
   type: string
@@ -50,6 +51,7 @@ interface DocumentItem {
 }
 
 export default function Notes() {
+  const { user } = useAuth()
   const [file, setFile] = useState<File | null>(null)
   const [notesData, setNotesData] = useState<NoteItem[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -233,21 +235,21 @@ export default function Notes() {
         return
       }
 
-      // Step 2: Generate notes via Gemini API
+      // Step 2: Generate notes via API
       const summary = await generateWithGemini(text)
       if (!summary.trim()) {
-        setError("No summary generated from Gemini.")
+        setError("No notes were generated. Please try again.")
         setIsLoading(false)
         return
       }
 
-      // Step 3: Parse the Gemini response into structured data
+      // Step 3: Parse the response into structured data
       const parsedNotes = parseGeminiResponse(summary)
       setNotesData(parsedNotes)
       setSuccess("Short notes generated successfully!")
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error:", err)
-      setError("An error occurred during processing.")
+      setError(err.message || "An error occurred during processing.")
     } finally {
       setIsLoading(false)
     }
@@ -266,24 +268,23 @@ export default function Notes() {
   useEffect(() => {
     const fetchDocuments = async () => {
       try {
-        const teacherData = localStorage.getItem("teacherData")
-        if (!teacherData) return
+        if (!user?.uid) return
 
-        const { Id: teacherId } = JSON.parse(teacherData)
-
-        const response = await fetch(`/api/notes/document?teacherId=${teacherId}`)
+        const response = await fetch(`/api/notes/document?teacherId=${user.uid}`)
         const data = await response.json()
 
         if (data.success) {
-          setDocuments(data.documents)
+          setDocuments(data.documents || [])
         }
       } catch (error) {
         console.error("Error fetching documents:", error)
       }
     }
 
-    fetchDocuments()
-  }, [])
+    if (user) {
+      fetchDocuments()
+    }
+  }, [user])
 
   // Handle document file change
   const handleDocumentFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -300,21 +301,18 @@ export default function Notes() {
       return
     }
 
+    if (!user?.uid) {
+      setDocumentError("Please log in to upload documents.")
+      return
+    }
+
     try {
       setIsDocumentUploading(true)
       setDocumentError("")
 
-      const teacherData = localStorage.getItem("teacherData")
-      if (!teacherData) {
-        setDocumentError("No teacher data found. Please log in again.")
-        return
-      }
-
-      const { Id: teacherId } = JSON.parse(teacherData)
-
       const formData = new FormData()
       formData.append("file", documentFile)
-      formData.append("teacherId", teacherId.toString())
+      formData.append("teacherId", user.uid)
       formData.append("title", documentTitle || documentFile.name)
       formData.append("description", documentDescription)
 
@@ -327,11 +325,11 @@ export default function Notes() {
 
       if (data.success) {
         // Refresh document list
-        const docsResponse = await fetch(`/api/notes/document?teacherId=${teacherId}`)
+        const docsResponse = await fetch(`/api/notes/document?teacherId=${user.uid}`)
         const docsData = await docsResponse.json()
 
         if (docsData.success) {
-          setDocuments(docsData.documents)
+          setDocuments(docsData.documents || [])
         }
 
         // Close dialog and reset form
@@ -380,26 +378,32 @@ export default function Notes() {
   return (
     <div className="container mx-auto px-4 py-8 animate-fade-in">
       <div className="max-w-4xl mx-auto">
-        <div className="flex items-center mb-6">
-          <FileText className="h-6 w-6 mr-2 text-blue-600" />
-          <h1 className="text-2xl font-bold">Teacher Notes</h1>
+        <div className="flex items-center mb-8">
+          <div className="p-3 bg-gradient-blue rounded-xl mr-4 shadow-lg">
+            <FileText className="h-7 w-7 text-white" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+              Teacher Notes
+            </h1>
+            <p className="text-muted-foreground">Generate notes from your documents</p>
+          </div>
         </div>
 
         <Tabs defaultValue={activeTab} className="w-full" onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-2 mb-6">
-            <TabsTrigger value="short-notes">Short Notes Generator</TabsTrigger>
-            <TabsTrigger value="documents">Document Repository</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 mb-8 p-1 bg-muted/50 rounded-xl">
+            <TabsTrigger value="short-notes" className="rounded-lg data-[state=active]:shadow-md">Short Notes Generator</TabsTrigger>
+            <TabsTrigger value="documents" className="rounded-lg data-[state=active]:shadow-md">Document Repository</TabsTrigger>
           </TabsList>
 
           <TabsContent value="short-notes">
-            <p className="text-muted-foreground mb-8">
-              Upload a PDF document to extract text and generate short, concise notes. The system extracts the text from the
-              document, sends it to Gemini for summarization, and then displays the results.
+            <p className="text-muted-foreground mb-8 text-center max-w-2xl mx-auto">
+              Upload a PDF document to extract text and generate concise, organized notes automatically.
             </p>
 
-            <Card className="mb-8 hover-card">
+            <Card className="mb-8 hover-card dark:bg-slate-800/50 dark:border-slate-700">
               <CardHeader>
-                <CardTitle>Upload Document</CardTitle>
+                <CardTitle className="dark:text-white">Upload Document</CardTitle>
                 <CardDescription>Select a PDF file to generate notes</CardDescription>
               </CardHeader>
               <CardContent>

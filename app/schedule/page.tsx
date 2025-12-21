@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { useAuth } from "@/lib/firebase/AuthContext"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle, Calendar } from "lucide-react"
@@ -10,68 +11,65 @@ import { Badge } from "@/components/ui/badge"
 
 export default function Schedule() {
   const router = useRouter()
-  const [teacher, setTeacher] = useState<any>(null)
+  const { user, loading: authLoading } = useAuth()
   const [schedule, setSchedule] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [isMounted, setIsMounted] = useState(false)
   const [currentDay, setCurrentDay] = useState("")
 
   useEffect(() => {
-    setIsMounted(true)
-    // Get teacher data from localStorage
-    const teacherData = localStorage.getItem("teacherData")
-    if (!teacherData) {
-      router.push("/")
-      return
-    }
-
-    const teacher = JSON.parse(teacherData)
-    setTeacher(teacher)
-
     // Set current day
     const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
     setCurrentDay(days[new Date().getDay()])
+  }, [])
 
-    // Fetch schedule
-    fetchSchedule(teacher.Id)
-  }, [router])
-
-  const fetchSchedule = async (teacherId: number) => {
-    try {
-      setLoading(true)
-      setError(null)
-
-      const response = await fetch(`/api/schedule/${teacherId}`)
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch schedule: ${response.status}`)
+  useEffect(() => {
+    async function fetchSchedule() {
+      if (authLoading) return
+      
+      if (!user) {
+        router.push("/")
+        return
       }
 
-      const data = await response.json()
-      setSchedule(data)
-    } catch (err: any) {
-      console.error("Error fetching schedule:", err)
-      setError(err.message || "Failed to fetch schedule")
-    } finally {
-      setLoading(false)
+      try {
+        setLoading(true)
+        // Dynamically import to separate firebase logic if needed, or just import at top
+        const { getTeacherSchedule } = await import("@/lib/firebase/firestore")
+        const data = await getTeacherSchedule(user.uid)
+        setSchedule(data)
+      } catch (err: any) {
+        console.error("Error fetching schedule:", err)
+        setError("Failed to fetch schedule")
+      } finally {
+        setLoading(false)
+      }
     }
-  }
+    
+    fetchSchedule()
+  }, [user, authLoading, router])
 
-  if (!isMounted) return null
+  if (authLoading) return <div className="p-8 text-center">Loading authentication...</div>
 
   return (
     <div className="container mx-auto px-4 py-8 animate-fade-in">
-      <div className="flex items-center mb-6">
-        <Calendar className="h-6 w-6 mr-2 text-blue-600" />
-        <h1 className="text-2xl font-bold">Weekly Schedule</h1>
+      <div className="flex items-center mb-8">
+        <div className="p-3 bg-gradient-purple rounded-xl mr-4 shadow-lg">
+          <Calendar className="h-7 w-7 text-white" />
+        </div>
+        <div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+            Weekly Schedule
+          </h1>
+          <p className="text-muted-foreground">View your class timetable</p>
+        </div>
       </div>
 
-      <Card className="hover-card">
-        <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
+      <Card className="hover-card dark:bg-slate-800/50 dark:border-slate-700">
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-700 border-b dark:border-slate-700">
           <CardTitle className="flex items-center justify-between">
-            <span>Class Timetable</span>
-            <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200">
+            <span className="dark:text-white">Class Timetable</span>
+            <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/50 dark:text-blue-300 dark:border-blue-800">
               Today: {currentDay}
             </Badge>
           </CardTitle>
@@ -88,48 +86,60 @@ export default function Schedule() {
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             </div>
-          ) : !schedule ? (
+          ) : !schedule || !schedule.days ? (
             <div className="p-6">
               <Alert>
-                <AlertDescription>No schedule data available</AlertDescription>
+                <AlertDescription>No schedule data available. Ask your admin to assign a schedule.</AlertDescription>
               </Alert>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead className="font-medium">Day</TableHead>
-                    <TableHead>8:30 - 9:30</TableHead>
-                    <TableHead>9:30 - 10:30</TableHead>
-                    <TableHead>10:30 - 10:50</TableHead>
-                    <TableHead>10:50 - 11:50</TableHead>
-                    <TableHead>11:50 - 12:50</TableHead>
-                    <TableHead>12:50 - 1:45</TableHead>
-                    <TableHead>1:45 - 2:40</TableHead>
-                    <TableHead>2:40 - 3:35</TableHead>
-                    <TableHead>3:35 - 4:30</TableHead>
+                  <TableRow className="bg-muted/50 dark:bg-slate-800">
+                    <TableHead className="font-medium dark:text-slate-300">Day</TableHead>
+                    <TableHead className="dark:text-slate-300">8:30 - 9:30</TableHead>
+                    <TableHead className="dark:text-slate-300">9:30 - 10:30</TableHead>
+                    <TableHead className="dark:text-slate-300">10:30 - 10:50</TableHead>
+                    <TableHead className="dark:text-slate-300">10:50 - 11:50</TableHead>
+                    <TableHead className="dark:text-slate-300">11:50 - 12:50</TableHead>
+                    <TableHead className="dark:text-slate-300">12:50 - 1:45</TableHead>
+                    <TableHead className="dark:text-slate-300">1:45 - 2:40</TableHead>
+                    <TableHead className="dark:text-slate-300">2:40 - 3:35</TableHead>
+                    <TableHead className="dark:text-slate-300">3:35 - 4:30</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {schedule.Schedule.map((daySchedule: any, dayIndex: number) => (
-                    <TableRow key={dayIndex} className={daySchedule.Day === currentDay ? "bg-blue-50" : ""}>
-                      <TableCell className="font-medium">
-                        {daySchedule.Day === currentDay ? (
+                  {schedule.days.map((daySchedule: any, dayIndex: number) => (
+                    <TableRow 
+                      key={dayIndex} 
+                      className={daySchedule.name === currentDay 
+                        ? "bg-blue-50/50 dark:bg-blue-900/20" 
+                        : "dark:border-slate-700"
+                      }
+                    >
+                      <TableCell className="font-medium dark:text-slate-200">
+                        {daySchedule.name === currentDay ? (
                           <span className="flex items-center">
-                            {daySchedule.Day}
-                            <Badge className="ml-2 bg-blue-500">Today</Badge>
+                            {daySchedule.name}
+                            <Badge className="ml-2 bg-blue-500 dark:bg-blue-600">Today</Badge>
                           </span>
                         ) : (
-                          daySchedule.Day
+                          daySchedule.name
                         )}
                       </TableCell>
-                      {daySchedule.Periods.map((subject: string, periodIndex: number) => (
+                      {daySchedule.periods.map((subject: string, periodIndex: number) => (
                         <TableCell
                           key={periodIndex}
-                          className={`
-                            ${periodIndex === 2 || periodIndex === 5 ? "bg-gray-50" : ""}
-                            ${daySchedule.Day === currentDay ? "border-blue-100" : ""}
+                          className={`dark:text-slate-300
+                            ${periodIndex === 2 || periodIndex === 5 
+                              ? "bg-gray-50/50 dark:bg-slate-700/50" 
+                              : ""
+                            }
+                            ${daySchedule.name === currentDay 
+                              ? "border-blue-100 dark:border-blue-900/30" 
+                              : ""
+                            }
                           `}
                         >
                           {periodIndex === 2 ? (
@@ -147,6 +157,7 @@ export default function Schedule() {
               </Table>
             </div>
           )}
+
         </CardContent>
       </Card>
     </div>

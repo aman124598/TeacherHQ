@@ -10,50 +10,65 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: 'No file provided' }, { status: 400 })
     }
 
-    // If OCR API key is configured, use OCR.Space. Otherwise use local PDF extractor as a safe dev fallback.
-    if (process.env.OCR_API_KEY && process.env.OCR_API_KEY.trim() !== "") {
-      // Create form data for OCR.Space API
-      const ocrFormData = new FormData()
-      ocrFormData.append('file', file)
-      ocrFormData.append('language', 'eng')
-      ocrFormData.append('isOverlayRequired', 'false')
+    // If OCR API key is configured, try OCR.Space
+    const ocrApiKey = process.env.OCR_API_KEY
+    if (ocrApiKey && ocrApiKey.trim() !== "") {
+      try {
+        const ocrFormData = new FormData()
+        ocrFormData.append('file', file)
+        ocrFormData.append('language', 'eng')
+        ocrFormData.append('isOverlayRequired', 'false')
 
-      const response = await fetch('https://api.ocr.space/parse/image', {
-        method: 'POST',
-        headers: {
-          'apikey': process.env.OCR_API_KEY || '',
-        },
-        body: ocrFormData,
-      })
+        const response = await fetch('https://api.ocr.space/parse/image', {
+          method: 'POST',
+          headers: {
+            'apikey': ocrApiKey,
+          },
+          body: ocrFormData,
+        })
 
-      const result = await response.json()
-      const extractedText = result?.ParsedResults?.[0]?.ParsedText || ''
+        const result = await response.json()
+        const extractedText = result?.ParsedResults?.[0]?.ParsedText || ''
 
-      if (!extractedText.trim()) {
-        return NextResponse.json({
-          success: false,
-          message: 'No text found in the document',
-        }, { status: 400 })
+        if (extractedText.trim()) {
+          return NextResponse.json({ success: true, extractedText })
+        }
+        
+        // If OCR returned no text, fall through to PDF extractor
+        console.warn('OCR returned no text, falling back to PDF extractor')
+      } catch (ocrError) {
+        console.warn('OCR API error:', ocrError)
+        // Fall through to PDF extractor
       }
-
-      return NextResponse.json({ success: true, extractedText })
     }
 
-    // Development/local fallback: use the project's PDF extractor (placeholder) to return usable text
-    console.warn('OCR_API_KEY not set — using local PDF extractor fallback')
+    // Local fallback: use PDF extractor
+    console.log('Using local PDF extractor')
     try {
       const extractedText = await extractTextFromPDF(file)
-      return NextResponse.json({ success: true, extractedText })
-    } catch (err) {
-      console.error('Local PDF extraction failed:', err)
-      return NextResponse.json({ success: false, message: 'Failed to extract text locally' }, { status: 500 })
+      
+      if (extractedText && extractedText.trim()) {
+        return NextResponse.json({ success: true, extractedText })
+      }
+      
+      // If PDF has no extractable text, return helpful message
+      return NextResponse.json({
+        success: false,
+        message: 'No readable text found in the PDF. This could be because the PDF contains images or scanned content. Please try a text-based PDF.',
+      }, { status: 400 })
+    } catch (pdfError: any) {
+      console.error('PDF extraction error:', pdfError)
+      return NextResponse.json({
+        success: false,
+        message: pdfError.message || 'Failed to extract text from PDF',
+      }, { status: 400 })
     }
 
   } catch (error) {
     console.error('OCR processing error:', error)
     return NextResponse.json({
       success: false,
-      message: 'Error processing document',
+      message: 'Error processing document. Please try again.',
     }, { status: 500 })
   }
 }

@@ -31,14 +31,42 @@ interface ImportantDate {
 // CSS for react-calendar
 const calendarStyles = `
   .react-calendar {
-    width: 100%; /* Ensure it takes full width of the container */
-    max-width: 100%; /* Prevent overflow */
-    background: #ffffff; /* Set a white background for better visibility */
-    border-radius: 0.5rem;
+    width: 100%;
+    max-width: 100%;
+    background: var(--calendar-bg, #ffffff);
+    border-radius: 0.75rem;
     font-family: inherit;
-    padding: 1rem; /* Add padding for better spacing */
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Add a subtle shadow */
-    color: #000000; /* Ensure text is visible */
+    padding: 1rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    color: var(--calendar-text, #000000);
+    border: 1px solid var(--calendar-border, #e5e7eb);
+  }
+  .dark .react-calendar {
+    --calendar-bg: rgb(30 41 59 / 0.8);
+    --calendar-text: #e2e8f0;
+    --calendar-border: rgb(51 65 85);
+  }
+  .react-calendar__navigation {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 44px;
+    margin-bottom: 1em;
+  }
+  .react-calendar__navigation button {
+    color: var(--calendar-text, #000);
+  }
+  .dark .react-calendar__navigation button {
+    color: #e2e8f0;
+  }
+  .react-calendar__tile {
+    text-align: center;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    color: var(--calendar-text, #000000);
+  }
+  .dark .react-calendar__tile {
+    color: #e2e8f0;
   }
   .react-calendar__navigation {
     display: flex;
@@ -73,12 +101,19 @@ const calendarStyles = `
     color: #d10000; /* Highlight weekends in red */
   }
   .react-calendar__tile--now {
-    background: #ffff76; /* Highlight the current day */
+    background: #fef3c7;
     border-radius: 0.25rem;
+  }
+  .dark .react-calendar__tile--now {
+    background: rgb(120 53 15 / 0.5);
   }
   .react-calendar__tile--now:enabled:hover,
   .react-calendar__tile--now:enabled:focus {
-    background: #ffffa9;
+    background: #fde68a;
+  }
+  .dark .react-calendar__tile--now:enabled:hover,
+  .dark .react-calendar__tile--now:enabled:focus {
+    background: rgb(120 53 15 / 0.7);
   }
   .react-calendar--doubleView {
     width: 700px;
@@ -197,10 +232,14 @@ const calendarStyles = `
   }
 `
 
+import { useAuth } from "@/lib/firebase/AuthContext"
+import { getUserEvents, addUserEvent, deleteUserEvent, EventData } from "@/lib/firebase/firestore"
+
 export default function ImportantDatesCalendar() {
+  const { user } = useAuth()
   const [value, setValue] = useState<Date>(new Date())
-  const [importantDates, setImportantDates] = useState<ImportantDate[]>([])
-  const [newEvent, setNewEvent] = useState<Omit<ImportantDate, "id">>({
+  const [importantDates, setImportantDates] = useState<any[]>([])
+  const [newEvent, setNewEvent] = useState<any>({
     date: new Date(),
     title: "",
     description: "",
@@ -208,24 +247,32 @@ export default function ImportantDatesCalendar() {
   })
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
-  const [eventsForSelectedDate, setEventsForSelectedDate] = useState<ImportantDate[]>([])
+  const [eventsForSelectedDate, setEventsForSelectedDate] = useState<any[]>([])
+  const [loading, setLoading] = useState(false)
 
-  // Load important dates from localStorage on component mount
+  // Load important dates from Firestore on component mount
   useEffect(() => {
-    const savedDates = localStorage.getItem("importantDates")
-    if (savedDates) {
-      const parsedDates = JSON.parse(savedDates).map((date: any) => ({
-        ...date,
-        date: new Date(date.date),
-      }))
-      setImportantDates(parsedDates)
+    async function loadEvents() {
+      if (!user) return
+      
+      try {
+        setLoading(true)
+        const events = await getUserEvents(user.uid)
+        // Convert timestamps/strings to Date objects
+        const parsedEvents = events.map((event: any) => ({
+          ...event,
+          date: event.date.seconds ? new Date(event.date.seconds * 1000) : new Date(event.date),
+        }))
+        setImportantDates(parsedEvents)
+      } catch (error) {
+        console.error("Failed to load events", error)
+      } finally {
+        setLoading(false)
+      }
     }
-  }, [])
-
-  // Save important dates to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem("importantDates", JSON.stringify(importantDates))
-  }, [importantDates])
+    
+    loadEvents()
+  }, [user])
 
   // Update events for selected date when date or important dates change
   useEffect(() => {
@@ -244,26 +291,49 @@ export default function ImportantDatesCalendar() {
     setSelectedDate(date)
   }
 
-  const handleAddEvent = () => {
-    if (!newEvent.title.trim()) return
+  const handleAddEvent = async () => {
+    if (!newEvent.title.trim() || !user) return
 
-    const newEventWithId: ImportantDate = {
-      ...newEvent,
-      id: Date.now().toString(),
+    try {
+      const eventToAdd = {
+        userId: user.uid,
+        title: newEvent.title,
+        description: newEvent.description,
+        type: newEvent.type,
+        date: newEvent.date.toISOString() // Store as ISO string for simplicity or Timestamp
+      }
+      
+      const result = await addUserEvent(eventToAdd)
+      
+      if (result.success) {
+        const newEventWithId = {
+           ...eventToAdd,
+           id: result.id,
+           date: newEvent.date
+        }
+        setImportantDates([...importantDates, newEventWithId])
+        setNewEvent({
+          date: selectedDate || new Date(),
+          title: "",
+          description: "",
+          type: "other",
+        })
+        setIsDialogOpen(false)
+      }
+    } catch (error) {
+      console.error("Error adding event:", error)
+      alert("Failed to save event")
     }
-
-    setImportantDates([...importantDates, newEventWithId])
-    setNewEvent({
-      date: selectedDate || new Date(),
-      title: "",
-      description: "",
-      type: "other",
-    })
-    setIsDialogOpen(false)
   }
 
-  const handleDeleteEvent = (id: string) => {
-    setImportantDates(importantDates.filter((date) => date.id !== id))
+  const handleDeleteEvent = async (id: string) => {
+    try {
+      await deleteUserEvent(id)
+      setImportantDates(importantDates.filter((date) => date.id !== id))
+    } catch (error) {
+      console.error("Error deleting event:", error)
+      alert("Failed to delete event")
+    }
   }
 
   // Function to check if a date has important events
@@ -324,10 +394,10 @@ export default function ImportantDatesCalendar() {
   }
 
   return (
-    <Card className="hover-card">
+    <Card className="hover-card dark:bg-slate-800/50 dark:border-slate-700">
       <style>{calendarStyles}</style>
       <CardHeader>
-        <CardTitle className="flex items-center justify-between">
+        <CardTitle className="flex items-center justify-between dark:text-white">
           <div className="flex items-center">
             <Calendar className="h-5 w-5 mr-2 text-blue-600" />
             Important Dates
@@ -407,13 +477,13 @@ export default function ImportantDatesCalendar() {
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="w-full max-w-md mx-auto bg-white p-4 rounded-md shadow-md"> {/* Add background and padding */}
+          <div className="w-full max-w-md mx-auto bg-white dark:bg-slate-800 p-4 rounded-md shadow-md dark:shadow-slate-900/50"> {/* Add background and padding */}
             <ReactCalendar
-              onChange={setValue}
+              onChange={(value) => setValue(value as Date)}
               value={value}
               onClickDay={handleDateClick}
               tileContent={tileContent}
-              className="border rounded-md"
+              className="border-none"
             />
             <div className="flex justify-center mt-4 gap-4">
               <div className="flex items-center">
@@ -435,8 +505,8 @@ export default function ImportantDatesCalendar() {
             </div>
           </div>
           <div>
-            <div className="border rounded-md p-4 h-full">
-              <h3 className="font-medium mb-4 flex items-center">
+            <div className="border dark:border-slate-700 rounded-md p-4 h-full dark:bg-slate-800/30">
+              <h3 className="font-medium mb-4 flex items-center dark:text-slate-200">
                 <Star className="h-4 w-4 mr-2 text-yellow-500" />
                 {selectedDate ? (
                   <span>Events for {selectedDate.toLocaleDateString()}</span>
@@ -467,10 +537,10 @@ export default function ImportantDatesCalendar() {
               )}
               <div className="space-y-3">
                 {eventsForSelectedDate.map((event) => (
-                  <div key={event.id} className="border rounded-md p-3 bg-gray-50">
+                  <div key={event.id} className="border dark:border-slate-700 rounded-md p-3 bg-gray-50 dark:bg-slate-700/50">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h4 className="font-medium">{event.title}</h4>
+                        <h4 className="font-medium dark:text-white">{event.title}</h4>
                         <Badge className={cn("mt-1", getBadgeColor(event.type))}>
                           {event.type.charAt(0).toUpperCase() + event.type.slice(1)}
                         </Badge>

@@ -27,6 +27,12 @@ const nextConfig = {
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
   },
+  // Optimize bundle
+  swcMinify: true,
+  // Transpile Firebase for better tree-shaking
+  transpilePackages: ['firebase', '@firebase/auth', '@firebase/firestore'],
+  // Keep pdf-parse server-side only
+  serverExternalPackages: ['pdf-parse'],
 }
 
 if (userConfig) {

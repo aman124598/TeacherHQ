@@ -4,6 +4,8 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Calendar, Star } from "lucide-react"
 import ImportantDatesCalendar from "@/components/important-dates-calendar"
+import { useAuth } from "@/lib/firebase/AuthContext"
+import { getUserEvents } from "@/lib/firebase/firestore"
 
 export default function ImportantDatesPage() {
   const [isMounted, setIsMounted] = useState(false)
@@ -16,17 +18,24 @@ export default function ImportantDatesPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 animate-fade-in">
-      <div className="flex items-center mb-6">
-        <Calendar className="h-6 w-6 mr-2 text-blue-600" />
-        <h1 className="text-2xl font-bold">Important Dates</h1>
+      <div className="flex items-center mb-8">
+        <div className="p-3 bg-gradient-warm rounded-xl mr-4 shadow-lg">
+          <Calendar className="h-7 w-7 text-white" />
+        </div>
+        <div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-orange-500 to-pink-500 bg-clip-text text-transparent">
+            Important Dates
+          </h1>
+          <p className="text-muted-foreground">Track your important events and deadlines</p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6">
         <ImportantDatesCalendar />
 
-        <Card className="hover-card">
+        <Card className="hover-card dark:bg-slate-800/50 dark:border-slate-700">
           <CardHeader>
-            <CardTitle className="flex items-center">
+            <CardTitle className="flex items-center dark:text-white">
               <Star className="h-5 w-5 mr-2 text-yellow-500" />
               Upcoming Important Dates
             </CardTitle>
@@ -46,32 +55,44 @@ export default function ImportantDatesPage() {
 // Component to display upcoming events
 function UpcomingEvents() {
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([])
+  const { user } = useAuth()
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Load important dates from localStorage
-    const savedDates = localStorage.getItem("importantDates")
-    if (savedDates) {
-      const parsedDates = JSON.parse(savedDates).map((date: any) => ({
-        ...date,
-        date: new Date(date.date),
-      }))
+    async function loadEvents() {
+      if (!user) return
 
-      // Filter for upcoming events (today and future)
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
+      try {
+        const events = await getUserEvents(user.uid)
+        
+        const parsedEvents = events.map((event: any) => ({
+          ...event,
+          date: event.date.seconds ? new Date(event.date.seconds * 1000) : new Date(event.date),
+        }))
 
-      const upcoming = parsedDates
-        .filter((event: any) => {
-          const eventDate = new Date(event.date)
-          eventDate.setHours(0, 0, 0, 0)
-          return eventDate >= today
-        })
-        .sort((a: any, b: any) => a.date - b.date)
-        .slice(0, 5) // Get only the next 5 events
+        // Filter for upcoming events (today and future)
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
 
-      setUpcomingEvents(upcoming)
+        const upcoming = parsedEvents
+          .filter((event: any) => {
+            const eventDate = new Date(event.date)
+            eventDate.setHours(0, 0, 0, 0)
+            return eventDate >= today
+          })
+          .sort((a: any, b: any) => a.date.getTime() - b.date.getTime())
+          .slice(0, 5) // Get only the next 5 events
+
+        setUpcomingEvents(upcoming)
+      } catch (error) {
+        console.error("Failed to load upcoming events", error)
+      } finally {
+        setLoading(false)
+      }
     }
-  }, [])
+
+    loadEvents()
+  }, [user])
 
   // Get badge color based on event type
   const getBadgeColor = (type: string) => {
@@ -87,6 +108,10 @@ function UpcomingEvents() {
       default:
         return "bg-gray-100 text-gray-800 border-gray-200"
     }
+  }
+
+  if (loading) {
+    return <div className="text-center py-8 text-muted-foreground">Loading...</div>
   }
 
   if (upcomingEvents.length === 0) {

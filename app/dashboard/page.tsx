@@ -19,14 +19,23 @@ import {
   FileText,
   CheckCheck,
   Star,
+  Plus,
 } from "lucide-react"
 import TodoList from "@/components/todo-list"
 import { calculateDistance } from "@/lib/distance-calculator"
 import { Progress } from "@/components/ui/progress"
+import { useAuth } from "@/lib/firebase/AuthContext"
+import WelcomeTour from "@/components/welcome-tour"
+
+// Dev account email - shows sample data
+const DEV_EMAIL = "dev@example.com"
+
+// Key for storing tour completion in localStorage
+const TOUR_COMPLETED_KEY = "tourCompleted"
 
 export default function Dashboard() {
   const router = useRouter()
-  const [teacher, setTeacher] = useState<any>(null)
+  const { user, userData, loading } = useAuth()
   const [isLocationVerified, setIsLocationVerified] = useState(false)
   const [attendanceMarked, setAttendanceMarked] = useState(false)
   const [currentLocation, setCurrentLocation] = useState<any>(null)
@@ -37,54 +46,66 @@ export default function Dashboard() {
   const [isMounted, setIsMounted] = useState(false)
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([])
   const [collegeLocation, setCollegeLocation] = useState({ latitude: 0, longitude: 0 })
+  const [showTour, setShowTour] = useState(false)
 
-  // Sample attendance stats
-  const attendanceStats = {
-    present: 15,
-    absent: 3,
-    total: 18,
-    percentage: Math.round((15 / 18) * 100),
-  }
+  // Check if dev account
+  const isDevAccount = user?.email === DEV_EMAIL
+
+  // Attendance stats - only show for dev account or fetch real data
+  const attendanceStats = isDevAccount 
+    ? { present: 15, absent: 3, total: 18, percentage: Math.round((15 / 18) * 100) }
+    : { present: 0, absent: 0, total: 0, percentage: 0 }
+
+  // Get display name from Firebase user
+  const displayName = userData?.displayName || user?.displayName || "Teacher"
 
   useEffect(() => {
     setIsMounted(true)
-    
-    // Ensure we're on the client side
-    if (typeof window === 'undefined') return
-    
-    // Get teacher data from localStorage
-    const teacherData = localStorage.getItem("teacherData")
-    if (!teacherData) {
-      // Clear authentication cookie if no teacher data
-      document.cookie = "teacher_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT"
-      router.push("/")
-      return
+
+    // Load upcoming events from Firestore
+    async function loadUpcomingEvents() {
+      if (!user) return
+      
+      try {
+        const { getUserEvents, getTasksForUser } = await import("@/lib/firebase/firestore")
+        
+        // Load personal events
+        const events = await getUserEvents(user.uid)
+        const parsedEvents = events.map((event: any) => ({
+          ...event,
+          date: event.date.seconds ? new Date(event.date.seconds * 1000) : new Date(event.date),
+        }))
+
+        // Load admin-assigned tasks
+        const tasks = await getTasksForUser(user.uid)
+        const parsedTasks = tasks.map((task: any) => ({
+          ...task,
+          date: task.dueDate?.seconds ? new Date(task.dueDate.seconds * 1000) : (task.dueDate ? new Date(task.dueDate) : new Date()),
+          type: task.type || "task"
+        }))
+
+        const allEvents = [...parsedEvents, ...parsedTasks]
+
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+
+        const upcoming = allEvents
+          .filter((event: any) => {
+            const eventDate = new Date(event.date)
+            eventDate.setHours(0, 0, 0, 0)
+            return eventDate >= today
+          })
+          .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime())
+          .slice(0, 3)
+
+        setUpcomingEvents(upcoming)
+      } catch (error) {
+        console.error("Error loading events:", error)
+      }
     }
 
-    setTeacher(JSON.parse(teacherData))
-
-    // Load upcoming events
-    const savedDates = localStorage.getItem("importantDates")
-    if (savedDates) {
-      const parsedDates = JSON.parse(savedDates).map((date: any) => ({
-        ...date,
-        date: new Date(date.date),
-      }))
-
-      // Filter for upcoming events (today and future)
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-
-      const upcoming = parsedDates
-        .filter((event: any) => {
-          const eventDate = new Date(event.date)
-          eventDate.setHours(0, 0, 0, 0)
-          return eventDate >= today
-        })
-        .sort((a: any, b: any) => a.date - b.date)
-        .slice(0, 3) // Get only the next 3 events
-
-      setUpcomingEvents(upcoming)
+    if (user) {
+      loadUpcomingEvents()
     }
 
     // Fetch college location from API
@@ -97,13 +118,22 @@ export default function Dashboard() {
         }
       } catch (error) {
         console.error('Error fetching college location:', error)
-        // Fallback to default location
         setCollegeLocation({ latitude: 13.072204074042398, longitude: 77.50754474895987 })
       }
     }
 
     fetchCollegeLocation()
-  }, [router])
+
+    // Check if user should see the tour (new users only)
+    if (user?.uid) {
+      const userTourKey = `${TOUR_COMPLETED_KEY}_${user.uid}`
+      const tourCompleted = localStorage.getItem(userTourKey)
+      if (!tourCompleted) {
+        // New user - show tour
+        setShowTour(true)
+      }
+    }
+  }, [isDevAccount, user])
 
   // Return greeting based on local time
   const getGreeting = () => {
@@ -126,7 +156,6 @@ export default function Dashboard() {
         const userLat = position.coords.latitude
         const userLng = position.coords.longitude
 
-        // Calculate distance from college
         const { distanceInMeters, isWithinRange } = calculateDistance(
           userLat,
           userLng,
@@ -170,7 +199,7 @@ export default function Dashboard() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          userId: teacher?.Id,
+          userId: user?.uid,
           timestamp: new Date().toISOString(),
           location: currentLocation,
         }),
@@ -192,6 +221,24 @@ export default function Dashboard() {
     }
   }
 
+  // Handle tour completion
+  const handleTourComplete = () => {
+    if (user?.uid) {
+      const userTourKey = `${TOUR_COMPLETED_KEY}_${user.uid}`
+      localStorage.setItem(userTourKey, 'true')
+    }
+    setShowTour(false)
+  }
+
+  // Handle tour skip
+  const handleTourSkip = () => {
+    if (user?.uid) {
+      const userTourKey = `${TOUR_COMPLETED_KEY}_${user.uid}`
+      localStorage.setItem(userTourKey, 'true')
+    }
+    setShowTour(false)
+  }
+
   // Get badge color based on event type
   const getBadgeColor = (type: string) => {
     switch (type) {
@@ -210,85 +257,120 @@ export default function Dashboard() {
 
   if (!isMounted) return null
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin h-10 w-10 border-4 border-purple-600 border-t-transparent rounded-full"></div>
+          <p className="text-muted-foreground">Loading dashboard...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="container mx-auto px-4 py-8 animate-fade-in">
+    <>
+      {/* Welcome Tour for new users */}
+      {showTour && (
+        <WelcomeTour 
+          userName={displayName}
+          onComplete={handleTourComplete}
+          onSkip={handleTourSkip}
+        />
+      )}
+
+      <div className="container mx-auto px-4 py-8 animate-fade-in">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {/* Welcome Card */}
-        <Card className="md:col-span-2 hover-card border-l-4 border-l-blue-500 dark:border-l-blue-400 dark:bg-slate-800 dark:border-slate-700">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-2xl dark:text-white">{getGreeting()}, {teacher?.Name || "Teacher"}!</CardTitle>
-            <CardDescription className="dark:text-slate-400">Here's an overview of your day</CardDescription>
+        <Card className="md:col-span-2 hover-card border-l-4 border-l-purple-500 dark:border-l-purple-400 dark:bg-slate-800/50 dark:border-slate-700 shadow-premium backdrop-blur-sm bg-gradient-to-br from-white to-purple-50/30 dark:from-slate-800 dark:to-slate-800/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-2xl font-bold text-purple-700 dark:text-white">
+              {getGreeting()}, {displayName}!
+            </CardTitle>
+            <CardDescription className="dark:text-slate-400 text-base">Here's an overview of your day</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-2">
-              <div className="flex flex-col">
-                <span className="text-sm text-muted-foreground flex items-center">
-                  <Calendar className="h-4 w-4 mr-1" /> Date
+              <div className="flex flex-col p-3 rounded-lg bg-blue-50/50 dark:bg-slate-700/30 hover-lift">
+                <span className="text-xs text-muted-foreground flex items-center mb-1">
+                  <Calendar className="h-3.5 w-3.5 mr-1 text-blue-600 dark:text-blue-400" /> Date
                 </span>
-                <span className="font-medium">{new Date().toLocaleDateString()}</span>
+                <span className="font-semibold text-sm">{new Date().toLocaleDateString()}</span>
               </div>
-              <div className="flex flex-col">
-                <span className="text-sm text-muted-foreground flex items-center">
-                  <Clock className="h-4 w-4 mr-1" /> Time
+              <div className="flex flex-col p-3 rounded-lg bg-purple-50/50 dark:bg-slate-700/30 hover-lift">
+                <span className="text-xs text-muted-foreground flex items-center mb-1">
+                  <Clock className="h-3.5 w-3.5 mr-1 text-purple-600 dark:text-purple-400" /> Time
                 </span>
-                <span className="font-medium">
+                <span className="font-semibold text-sm">
                   {new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                 </span>
               </div>
-              <div className="flex flex-col">
-                <span className="text-sm text-muted-foreground flex items-center">
-                  <BookOpen className="h-4 w-4 mr-1" /> Classes Today
+              <div className="flex flex-col p-3 rounded-lg bg-green-50/50 dark:bg-slate-700/30 hover-lift">
+                <span className="text-xs text-muted-foreground flex items-center mb-1">
+                  <BookOpen className="h-3.5 w-3.5 mr-1 text-green-600 dark:text-green-400" /> Status
                 </span>
-                <span className="font-medium">4 Classes</span>
+                <span className="font-semibold text-sm">{attendanceMarked ? "Present" : "Not Marked"}</span>
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Attendance Stats Card */}
-        <Card className="hover-card border-l-4 border-l-green-500">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center text-lg">
-              <BarChart4 className="h-5 w-5 mr-2 text-green-600" />
+        <Card className="hover-card border-l-4 border-l-green-500 dark:bg-slate-800/50 shadow-premium backdrop-blur-sm bg-gradient-to-br from-white to-green-50/30 dark:from-slate-800 dark:to-slate-800/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center text-lg font-bold">
+              <BarChart4 className="h-5 w-5 mr-2 text-green-600 dark:text-green-400" />
               Attendance Stats
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-sm">Present Days</span>
-                <span className="font-medium text-green-600">{attendanceStats.present}</span>
+            {attendanceStats.total > 0 ? (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center p-3 rounded-lg bg-green-50/50 dark:bg-slate-700/30">
+                  <span className="text-sm font-medium">Present Days</span>
+                  <span className="font-bold text-green-600 dark:text-green-400 text-lg">{attendanceStats.present}</span>
+                </div>
+                <Progress value={attendanceStats.percentage} className="h-3 bg-green-100 dark:bg-slate-700" />
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground font-medium">{attendanceStats.percentage}% Attendance</span>
+                  <span className="text-muted-foreground font-medium">
+                    {attendanceStats.present}/{attendanceStats.total} Days
+                  </span>
+                </div>
               </div>
-              <Progress value={attendanceStats.percentage} className="h-2" />
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">{attendanceStats.percentage}% Attendance</span>
-                <span className="text-muted-foreground">
-                  {attendanceStats.present}/{attendanceStats.total} Days
-                </span>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-6 text-center">
+                <BarChart4 className="h-10 w-10 text-muted-foreground/30 mb-2" />
+                <p className="text-sm text-muted-foreground">No attendance data yet</p>
+                <p className="text-xs text-muted-foreground mt-1">Mark your first attendance below</p>
               </div>
-            </div>
+            )}
           </CardContent>
         </Card>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         {/* Location Verification Card */}
-        <Card className="hover-card">
+        <Card className="hover-card dark:bg-slate-800/50 shadow-premium backdrop-blur-sm bg-gradient-to-br from-white to-blue-50/30 dark:from-slate-800 dark:to-slate-800/50">
           <CardHeader>
-            <CardTitle className="flex items-center">
-              <MapPin className="h-5 w-5 mr-2 text-blue-600" />
+            <CardTitle className="flex items-center font-bold">
+              <MapPin className="h-6 w-6 mr-2 text-blue-600 dark:text-blue-400" />
               Location Verification
             </CardTitle>
-            <CardDescription>Verify your location to mark attendance</CardDescription>
+            <CardDescription className="text-base">Verify your location to mark attendance</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Button variant="outline" onClick={getLocation} className="w-full flex items-center justify-center">
-              <MapPin className="h-4 w-4 mr-2" />
+            <Button 
+              variant="outline" 
+              onClick={getLocation} 
+              className="w-full flex items-center justify-center h-11 border-2 border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-slate-700 font-semibold transition-all duration-200 hover-lift"
+            >
+              <MapPin className="h-5 w-5 mr-2" />
               Verify My Location
             </Button>
 
             {locationError && (
-              <Alert variant="destructive">
+              <Alert variant="destructive" className="animate-slide-up shadow-md">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{locationError}</AlertDescription>
               </Alert>
@@ -297,19 +379,19 @@ export default function Dashboard() {
             {currentLocation && (
               <Alert
                 variant={isWithinRange ? "default" : "destructive"}
-                className={isWithinRange ? "bg-green-50 text-green-800 border-green-200" : ""}
+                className={isWithinRange ? "bg-gradient-to-r from-green-50 to-emerald-50 text-green-800 border-green-300 dark:from-green-900/20 dark:to-emerald-900/20 dark:border-green-700 shadow-md animate-slide-up" : "shadow-md animate-slide-up"}
               >
                 {isWithinRange ? (
                   <div className="flex items-center">
-                    <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
-                    <AlertDescription>
+                    <CheckCircle className="h-5 w-5 mr-2 text-green-600 dark:text-green-400" />
+                    <AlertDescription className="font-medium">
                       You are within the college premises ({Math.round(currentLocation.distance)}m from center)
                     </AlertDescription>
                   </div>
                 ) : (
-                  <div>
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
+                  <div className="flex items-start">
+                    <AlertCircle className="h-5 w-5 mr-2 mt-0.5" />
+                    <AlertDescription className="font-medium">
                       You must be within 700 meters of the college to mark attendance. Current distance:{" "}
                       {Math.round(currentLocation.distance)}m
                     </AlertDescription>
@@ -322,26 +404,34 @@ export default function Dashboard() {
 
         {/* Mark Attendance Card */}
         <Card
-          className={`hover-card ${isWithinRange ? "bg-gradient-to-br from-green-50 to-emerald-100 border-green-200" : ""}`}
+          className={`hover-card dark:bg-slate-800/50 shadow-premium backdrop-blur-sm transition-all duration-300 ${
+            isWithinRange 
+              ? "bg-gradient-to-br from-green-50 via-emerald-50 to-green-100 dark:from-green-900/20 dark:via-emerald-900/20 dark:to-green-900/20 border-2 border-green-300 dark:border-green-700" 
+              : "bg-gradient-to-br from-white to-gray-50 dark:from-slate-800 dark:to-slate-800/50"
+          }`}
         >
           <CardHeader>
-            <CardTitle>Mark Your Attendance</CardTitle>
-            <CardDescription>Record your presence for today</CardDescription>
+            <CardTitle className="font-bold">Mark Your Attendance</CardTitle>
+            <CardDescription className="text-base">Record your presence for today</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center pt-4">
             <Button
-              className={`w-full max-w-xs ${isWithinRange ? "bg-green-600 hover:bg-green-700" : ""}`}
+              className={`w-full max-w-xs h-12 font-semibold text-base shadow-lg hover:shadow-xl transition-all duration-300 btn-glow ${
+                isWithinRange 
+                  ? "bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700" 
+                  : ""
+              }`}
               disabled={!isLocationVerified || !isWithinRange || isMarkingAttendance || attendanceMarked}
               onClick={handleAttendanceSubmit}
             >
               {isMarkingAttendance ? (
-                <>
-                  <div className="animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>
-                  Processing...
-                </>
+                <div className="flex items-center">
+                  <div className="animate-spin mr-2 h-5 w-5 border-2 border-current border-t-transparent rounded-full"></div>
+                  <span>Processing...</span>
+                </div>
               ) : attendanceMarked ? (
                 <>
-                  <CheckCheck className="mr-2 h-4 w-4" />
+                  <CheckCheck className="mr-2 h-5 w-5" />
                   Attendance Marked
                 </>
               ) : (
@@ -349,7 +439,7 @@ export default function Dashboard() {
               )}
             </Button>
 
-            <p className="text-sm text-muted-foreground mt-4 text-center">
+            <p className="text-sm font-medium mt-4 text-center px-4">
               {!isLocationVerified
                 ? "Please verify your location first"
                 : !isWithinRange
@@ -360,23 +450,23 @@ export default function Dashboard() {
             </p>
 
             {attendanceStatus === "success" && (
-              <Alert className="mt-4 bg-green-50 text-green-800 border-green-200">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-                <AlertDescription>Attendance marked successfully!</AlertDescription>
+              <Alert className="mt-4 bg-gradient-to-r from-green-50 to-emerald-50 text-green-800 border-green-300 dark:from-green-900/20 dark:to-emerald-900/20 dark:border-green-700 shadow-md animate-slide-up">
+                <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+                <AlertDescription className="font-medium">Attendance marked successfully!</AlertDescription>
               </Alert>
             )}
 
             {attendanceStatus === "error" && (
-              <Alert variant="destructive" className="mt-4">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>Failed to mark attendance. Please try again.</AlertDescription>
+              <Alert variant="destructive" className="mt-4 shadow-md animate-slide-up">
+                <AlertCircle className="h-5 w-5" />
+                <AlertDescription className="font-medium">Failed to mark attendance. Please try again.</AlertDescription>
               </Alert>
             )}
 
             {attendanceStatus === "location-error" && (
-              <Alert variant="destructive" className="mt-4">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>You must be within college premises to mark attendance!</AlertDescription>
+              <Alert variant="destructive" className="mt-4 shadow-md animate-slide-up">
+                <AlertCircle className="h-5 w-5" />
+                <AlertDescription className="font-medium">You must be within college premises to mark attendance!</AlertDescription>
               </Alert>
             )}
           </CardContent>
@@ -385,16 +475,28 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {/* Upcoming Events Card */}
-        <Card className="hover-card border-l-4 border-l-yellow-500">
+        <Card className="hover-card border-l-4 border-l-yellow-500 dark:bg-slate-800/50 shadow-premium">
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center text-lg">
+            <CardTitle className="flex items-center text-lg font-bold">
               <Star className="h-5 w-5 mr-2 text-yellow-500" />
               Upcoming Events
             </CardTitle>
           </CardHeader>
           <CardContent>
             {upcomingEvents.length === 0 ? (
-              <p className="text-center py-4 text-muted-foreground">No upcoming events</p>
+              <div className="flex flex-col items-center justify-center py-6 text-center">
+                <Star className="h-10 w-10 text-muted-foreground/30 mb-2" />
+                <p className="text-sm text-muted-foreground">No upcoming events</p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="mt-2 text-purple-600"
+                  onClick={() => router.push("/important-dates")}
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Event
+                </Button>
+              </div>
             ) : (
               <div className="space-y-3">
                 {upcomingEvents.map((event) => (
@@ -452,7 +554,7 @@ export default function Dashboard() {
               </TabsTrigger>
             </TabsList>
             <TabsContent value="todo" className="mt-4">
-              <Card>
+              <Card className="dark:bg-slate-800/50">
                 <CardHeader>
                   <CardTitle>Todo List</CardTitle>
                   <CardDescription>Manage your tasks for today</CardDescription>
@@ -463,46 +565,53 @@ export default function Dashboard() {
               </Card>
             </TabsContent>
             <TabsContent value="schedule" className="mt-4">
-              <Card>
+              <Card className="dark:bg-slate-800/50">
                 <CardHeader>
                   <CardTitle>Today's Schedule</CardTitle>
                   <CardDescription>Your classes for today</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse">
-                      <thead>
-                        <tr className="bg-muted">
-                          <th className="border p-2 text-left">Time</th>
-                          <th className="border p-2 text-left">Subject</th>
-                          <th className="border p-2 text-left">Room</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {/* This would be populated from the API */}
-                        <tr>
-                          <td className="border p-2">8:30 AM - 9:30 AM</td>
-                          <td className="border p-2">Computer Science</td>
-                          <td className="border p-2">Room 101</td>
-                        </tr>
-                        <tr>
-                          <td className="border p-2">9:30 AM - 10:30 AM</td>
-                          <td className="border p-2">Mathematics</td>
-                          <td className="border p-2">Room 203</td>
-                        </tr>
-                        <tr>
-                          <td className="border p-2">10:30 AM - 10:50 AM</td>
-                          <td className="border p-2 text-muted-foreground italic">Short Break</td>
-                          <td className="border p-2">-</td>
-                        </tr>
-                        <tr>
-                          <td className="border p-2">10:50 AM - 11:50 AM</td>
-                          <td className="border p-2">Physics</td>
-                          <td className="border p-2">Lab 3</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
+                  {isDevAccount ? (
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse">
+                        <thead>
+                          <tr className="bg-muted">
+                            <th className="border p-2 text-left">Time</th>
+                            <th className="border p-2 text-left">Subject</th>
+                            <th className="border p-2 text-left">Room</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td className="border p-2">8:30 AM - 9:30 AM</td>
+                            <td className="border p-2">Computer Science</td>
+                            <td className="border p-2">Room 101</td>
+                          </tr>
+                          <tr>
+                            <td className="border p-2">9:30 AM - 10:30 AM</td>
+                            <td className="border p-2">Mathematics</td>
+                            <td className="border p-2">Room 203</td>
+                          </tr>
+                          <tr>
+                            <td className="border p-2">10:30 AM - 10:50 AM</td>
+                            <td className="border p-2 text-muted-foreground italic">Short Break</td>
+                            <td className="border p-2">-</td>
+                          </tr>
+                          <tr>
+                            <td className="border p-2">10:50 AM - 11:50 AM</td>
+                            <td className="border p-2">Physics</td>
+                            <td className="border p-2">Lab 3</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-8 text-center">
+                      <Calendar className="h-12 w-12 text-muted-foreground/30 mb-3" />
+                      <p className="text-muted-foreground">No classes scheduled for today</p>
+                      <p className="text-sm text-muted-foreground mt-1">Your schedule will appear here once added</p>
+                    </div>
+                  )}
                 </CardContent>
                 <CardFooter>
                   <Button variant="outline" className="w-full" onClick={() => router.push("/schedule")}>
@@ -528,14 +637,13 @@ export default function Dashboard() {
 
         <Button
           variant="outline"
-          className="h-auto py-6 hover-card border border-yellow-200"
+          className="h-auto py-6 hover-card border border-yellow-200 dark:border-yellow-700"
           onClick={() => router.push("/important-dates")}
         >
           <div className="flex flex-col items-center">
             <span className="text-lg font-medium flex items-center">
               <Star className="h-5 w-5 mr-2 text-yellow-500" />
               Important Dates
-              <Badge className="ml-2 bg-yellow-500 hover:bg-yellow-600">New</Badge>
             </span>
             <span className="text-sm opacity-80 mt-1">Mark and track important events</span>
           </div>
@@ -543,19 +651,19 @@ export default function Dashboard() {
 
         <Button
           variant="outline"
-          className="h-auto py-6 hover-card border border-blue-200"
+          className="h-auto py-6 hover-card border border-blue-200 dark:border-blue-700"
           onClick={() => router.push("/notes")}
         >
           <div className="flex flex-col items-center">
             <span className="text-lg font-medium flex items-center">
               <FileText className="h-5 w-5 mr-2" />
               Generate Short Notes
-              <Badge className="ml-2 bg-green-500 hover:bg-green-600">New</Badge>
             </span>
             <span className="text-sm opacity-80 mt-1">Upload PDFs and get concise notes</span>
           </div>
         </Button>
       </div>
-    </div>
+      </div>
+    </>
   )
 }

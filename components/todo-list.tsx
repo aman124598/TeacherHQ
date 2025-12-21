@@ -8,6 +8,9 @@ import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Trash2 } from "lucide-react"
 
+import { useAuth } from "@/lib/firebase/AuthContext"
+import { getUserTodos, addUserTodo, updateUserTodo, deleteUserTodo, TodoData } from "@/lib/firebase/firestore"
+
 interface Todo {
   id: string
   text: string
@@ -15,42 +18,80 @@ interface Todo {
 }
 
 export default function TodoList() {
+  const { user } = useAuth()
   const [todos, setTodos] = useState<Todo[]>([])
   const [newTodo, setNewTodo] = useState("")
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    // Load todos from localStorage on component mount
-    const savedTodos = localStorage.getItem("teacherTodos")
-    if (savedTodos) {
-      setTodos(JSON.parse(savedTodos))
+    async function loadTodos() {
+       if (!user) return
+       try {
+         const data = await getUserTodos(user.uid)
+         setTodos(data.map((t: any) => ({ 
+             id: t.id, 
+             text: t.text, 
+             completed: t.completed 
+         })))
+       } catch (error) {
+         console.error("Failed to load todos", error)
+       }
     }
-  }, [])
+    loadTodos()
+  }, [user])
 
-  // Save todos to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem("teacherTodos", JSON.stringify(todos))
-  }, [todos])
-
-  const addTodo = (e: React.FormEvent) => {
+  const addTodo = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (newTodo.trim() === "") return
+    if (newTodo.trim() === "" || !user) return
 
-    const newItem: Todo = {
-      id: Date.now().toString(),
-      text: newTodo,
-      completed: false,
+    const todoText = newTodo
+    setNewTodo("") // Clear input immediately for better UX
+    
+    try {
+      // Optimistic update
+      const tempId = Date.now().toString()
+      const tempTodo = { id: tempId, text: todoText, completed: false }
+      setTodos([...todos, tempTodo])
+
+      const result = await addUserTodo({
+          userId: user.uid,
+          text: todoText,
+          completed: false
+      })
+      
+      if (result.success && result.id) {
+          // Replace temp ID with real ID
+          setTodos(current => current.map(t => t.id === tempId ? { ...t, id: result.id! } : t))
+      }
+    } catch (error) {
+        console.error("Failed to add todo", error)
+        // Revert on error could be implemented here
     }
-
-    setTodos([...todos, newItem])
-    setNewTodo("")
   }
 
-  const toggleTodo = (id: string) => {
-    setTodos(todos.map((todo) => (todo.id === id ? { ...todo, completed: !todo.completed } : todo)))
+  const toggleTodo = async (id: string) => {
+    const todo = todos.find(t => t.id === id)
+    if (!todo) return
+
+    // Optimistic update
+    setTodos(todos.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t)))
+
+    try {
+        await updateUserTodo(id, { completed: !todo.completed })
+    } catch (error) {
+        console.error("Failed to update todo", error)
+    }
   }
 
-  const deleteTodo = (id: string) => {
-    setTodos(todos.filter((todo) => todo.id !== id))
+  const deleteTodo = async (id: string) => {
+    // Optimistic update
+    setTodos(todos.filter((t) => t.id !== id)) 
+
+    try {
+        await deleteUserTodo(id)
+    } catch(error) {
+        console.error("Failed to delete todo", error)
+    }
   }
 
   return (
@@ -68,7 +109,10 @@ export default function TodoList() {
 
       <div className="space-y-2">
         {todos.length === 0 ? (
-          <p className="text-center text-muted-foreground py-4">No tasks yet. Add one above!</p>
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <p className="text-muted-foreground">No tasks yet</p>
+            <p className="text-sm text-muted-foreground mt-1">Add your first task above to get started!</p>
+          </div>
         ) : (
           todos.map((todo) => (
             <div key={todo.id} className="flex items-center justify-between p-3 border rounded-md bg-card">

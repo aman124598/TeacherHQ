@@ -4,13 +4,14 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { DarkModeWrapper } from "@/components/dark-mode-wrapper"
+import { AuthProvider } from "@/lib/firebase/AuthContext"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "Teacher Attendance System",
   description: "Location-based attendance system for teachers",
-    generator: 'v0.dev'
+  generator: 'v0.dev'
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -18,14 +19,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.className} min-h-screen bg-background text-foreground transition-colors duration-300`}>
         <ThemeProvider>
-          <DarkModeWrapper>
-            {children}
-          </DarkModeWrapper>
+          <AuthProvider>
+            <DarkModeWrapper>
+              {children}
+            </DarkModeWrapper>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>
   )
 }
-
-
-import './globals.css'

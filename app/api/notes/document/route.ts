@@ -8,21 +8,28 @@ import { mkdir } from "fs/promises"
 let isConnected = false
 
 const connectToDatabase = async () => {
-    if (isConnected) return
+    if (isConnected) return true
 
     try {
-    await mongoose.connect(process.env.MONGODB_URI || "mongodb+srv://amanraj89969:password@cluster0.5khmm.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+        const uri = process.env.MONGODB_URI
+        if (!uri) {
+            console.warn("MONGODB_URI not set - document storage disabled")
+            return false
+        }
+        await mongoose.connect(uri)
         isConnected = true
         console.log("Connected to MongoDB")
+        return true
     } catch (error) {
         console.error("Error connecting to MongoDB:", error)
+        return false
     }
 }
 
 // Define the document schema
 const documentSchema = new mongoose.Schema(
     {
-        teacherId: Number,
+        teacherId: String, // Changed to String to support Firebase UIDs
         title: String,
         fileName: String,
         fileType: String,
@@ -43,11 +50,18 @@ const Document = mongoose.models.Document || mongoose.model("Document", document
 // POST endpoint for uploading documents
 export async function POST(request: Request) {
     try {
-        await connectToDatabase()
+        const connected = await connectToDatabase()
+        
+        if (!connected) {
+            return NextResponse.json(
+                { success: false, message: "Database not configured" },
+                { status: 503 }
+            )
+        }
 
         const formData = await request.formData()
         const file = formData.get("file") as File
-        const teacherId = Number(formData.get("teacherId"))
+        const teacherId = formData.get("teacherId") as string
         const title = formData.get("title") as string
         const description = formData.get("description") as string
 
@@ -107,29 +121,38 @@ export async function POST(request: Request) {
 // GET endpoint for retrieving documents
 export async function GET(request: Request) {
     try {
-        await connectToDatabase()
+        const connected = await connectToDatabase()
+        
+        if (!connected) {
+            // Return empty array if database not configured
+            return NextResponse.json({
+                success: true,
+                documents: [],
+            })
+        }
 
         const { searchParams } = new URL(request.url)
-        const teacherId = Number(searchParams.get("teacherId"))
+        const teacherId = searchParams.get("teacherId")
 
         if (!teacherId) {
-            return NextResponse.json(
-                { success: false, message: "Teacher ID is required" },
-                { status: 400 }
-            )
+            return NextResponse.json({
+                success: true,
+                documents: [],
+            })
         }
 
         const documents = await Document.find({ teacherId }).sort({ uploadDate: -1 })
 
         return NextResponse.json({
             success: true,
-            documents,
+            documents: documents || [],
         })
     } catch (error) {
         console.error("Error retrieving documents:", error)
-        return NextResponse.json(
-            { success: false, message: "Error retrieving documents" },
-            { status: 500 }
-        )
+        // Return empty array on error instead of 500
+        return NextResponse.json({
+            success: true,
+            documents: [],
+        })
     }
-} 
+}
