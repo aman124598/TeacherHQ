@@ -25,6 +25,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useAuth } from "@/lib/firebase/AuthContext"
+import { getApiUrl } from "@/lib/config/api"
 
 interface NoteItem {
   type: string
@@ -176,7 +177,7 @@ export default function Notes() {
     const formData = new FormData()
     formData.append('file', pdfFile)
 
-    const response = await fetch('/api/notes/ocr', {
+    const response = await fetch(getApiUrl('/api/notes/ocr'), {
       method: 'POST',
       body: formData,
     })
@@ -192,7 +193,7 @@ export default function Notes() {
 
   // Function to generate short notes using Gemini API via API route
   const generateWithGemini = async (text: string): Promise<string> => {
-    const response = await fetch('/api/notes/generate', {
+    const response = await fetch(getApiUrl('/api/notes/generate'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -270,7 +271,7 @@ export default function Notes() {
       try {
         if (!user?.uid) return
 
-        const response = await fetch(`/api/notes/document?teacherId=${user.uid}`)
+        const response = await fetch(getApiUrl(`/api/notes/document?teacherId=${user.uid}`))
         const data = await response.json()
 
         if (data.success) {
@@ -316,7 +317,7 @@ export default function Notes() {
       formData.append("title", documentTitle || documentFile.name)
       formData.append("description", documentDescription)
 
-      const response = await fetch("/api/notes/document", {
+      const response = await fetch(getApiUrl("/api/notes/document"), {
         method: "POST",
         body: formData,
       })
@@ -325,7 +326,7 @@ export default function Notes() {
 
       if (data.success) {
         // Refresh document list
-        const docsResponse = await fetch(`/api/notes/document?teacherId=${user.uid}`)
+        const docsResponse = await fetch(getApiUrl(`/api/notes/document?teacherId=${user.uid}`))
         const docsData = await docsResponse.json()
 
         if (docsData.success) {
@@ -351,7 +352,7 @@ export default function Notes() {
   // Delete a document
   const handleDocumentDelete = async (documentId: string) => {
     try {
-      const response = await fetch(`/api/notes/document/${documentId}`, {
+      const response = await fetch(getApiUrl(`/api/notes/document/${documentId}`), {
         method: "DELETE",
       })
 

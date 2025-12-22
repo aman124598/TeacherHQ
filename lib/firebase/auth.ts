@@ -64,14 +64,30 @@ export const signUpWithEmail = async (email: string, password: string, displayNa
   }
 };
 
-// Sign in with Google using popup (more reliable in Next.js)
+// Sign in with Google - uses different methods for web vs Capacitor
 export const signInWithGoogle = async () => {
   try {
-    console.log('Starting Google sign-in with popup...'); // DEBUG LOG
+    console.log('Starting Google sign-in...'); // DEBUG LOG
     const auth = getAuthInstance();
     const provider = getGoogleProvider();
     
+    // Check if running in Capacitor (mobile app)
+    const isCapacitor = typeof window !== 'undefined' && !!(window as any).Capacitor;
+    
+    if (isCapacitor) {
+      // Google popup/redirect doesn't work well in Capacitor WebView
+      // Inform the user to use email/password login instead
+      console.log('Capacitor detected - Google Sign-In requires native plugin');
+      return { 
+        success: false, 
+        error: 'Google Sign-In is not available in the mobile app. Please use email/password to sign in, or use the web version for Google login.' 
+      };
+    }
+    
+    // Use popup for web - works better in browsers
+    console.log('Using popup flow for web...');
     const result = await signInWithPopup(auth, provider);
+    
     console.log('Google sign-in successful:', result.user.email); // DEBUG LOG
     
     // Create or update user document in Firestore

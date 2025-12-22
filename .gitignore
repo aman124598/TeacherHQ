@@ -29,3 +29,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Capacitor mobile build backups
+_api_backup_temp/
+_backup_*/
+_middleware.ts.backup

@@ -26,6 +26,7 @@ import { calculateDistance } from "@/lib/distance-calculator"
 import { Progress } from "@/components/ui/progress"
 import { useAuth } from "@/lib/firebase/AuthContext"
 import WelcomeTour from "@/components/welcome-tour"
+import { getApiUrl } from "@/lib/config/api"
 
 // Dev account email - shows sample data
 const DEV_EMAIL = "dev@example.com"
@@ -111,7 +112,7 @@ export default function Dashboard() {
     // Fetch college location from API
     const fetchCollegeLocation = async () => {
       try {
-        const response = await fetch('/api/config/location')
+        const response = await fetch(getApiUrl('/api/config/location'))
         const data = await response.json()
         if (data.success) {
           setCollegeLocation(data.location)
@@ -193,7 +194,7 @@ export default function Dashboard() {
     setAttendanceStatus(null)
 
     try {
-      const response = await fetch("/api/attendance/mark", {
+      const response = await fetch(getApiUrl("/api/attendance/mark"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
