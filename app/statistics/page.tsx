@@ -1,14 +1,13 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { BarChart4, Calendar, CheckCircle, Clock, XCircle } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
+import { useAuth } from "@/lib/firebase/AuthContext"
 
 export default function Statistics() {
-  const router = useRouter()
-  const [teacher, setTeacher] = useState<any>(null)
+  const { user, userData, loading } = useAuth()
   const [isMounted, setIsMounted] = useState(false)
 
   // Sample attendance data - in a real app, this would come from an API
@@ -28,17 +27,21 @@ export default function Statistics() {
 
   useEffect(() => {
     setIsMounted(true)
-    // Get teacher data from localStorage
-    const teacherData = localStorage.getItem("teacherData")
-    if (!teacherData) {
-      router.push("/")
-      return
-    }
-
-    setTeacher(JSON.parse(teacherData))
-  }, [router])
+  }, [])
 
   if (!isMounted) return null
+
+  // Show loading state while auth is being determined
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin h-10 w-10 border-4 border-green-600 border-t-transparent rounded-full"></div>
+          <p className="text-muted-foreground">Loading statistics...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="container mx-auto px-4 py-8 animate-fade-in">

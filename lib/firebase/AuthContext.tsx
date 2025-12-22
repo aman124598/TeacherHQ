@@ -46,11 +46,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (!isMounted) return;
 
     const unsubscribe = onAuthStateChanged(getAuth_(), async (firebaseUser) => {
+      console.log('Auth state changed:', firebaseUser ? 'User logged in' : 'No user'); // DEBUG LOG
+      
       if (firebaseUser) {
         setUser(firebaseUser);
         
         // Fetch user data from Firestore with error handling
         try {
+          console.log('Fetching user data for:', firebaseUser.uid); // DEBUG LOG
           let data = await getUserData(firebaseUser.uid);
           
           // If user doesn't exist in Firestore, create them
@@ -68,6 +71,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             data = newUserData;
           }
           
+          console.log('User data loaded:', data); // DEBUG LOG
           setUserData(data);
         } catch (error) {
           console.error('Error fetching user data:', error);
@@ -82,16 +86,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
         
         // Redirect to dashboard if on login page
+        console.log('Current path:', pathname); // DEBUG LOG
         if (pathname === '/' || pathname === '/signup') {
+          console.log('Redirecting to /dashboard'); // DEBUG LOG
           router.push('/dashboard');
         }
       } else {
+        console.log('No user, redirecting logic...'); // DEBUG LOG
         setUser(null);
         setUserData(null);
         
         // Redirect to login if not on public pages
         const publicPaths = ['/', '/signup', '/forgot-password'];
         if (!publicPaths.includes(pathname)) {
+          console.log('Redirecting to /'); // DEBUG LOG
           router.push('/');
         }
       }
