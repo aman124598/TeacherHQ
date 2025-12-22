@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { DarkModeWrapper } from "@/components/dark-mode-wrapper"
 import { AuthProvider } from "@/lib/firebase/AuthContext"
 import { Analytics } from "@vercel/analytics/next"
+import { SpeedInsights } from "@vercel/speed-insights/next"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -18,7 +19,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} min-h-screen bg-background text-foreground transition-colors duration-300`}>
+      <body className={`${inter.className} min-h-screen bg-background text-foreground transition-colors duration-300`} suppressHydrationWarning>
         <ThemeProvider>
           <AuthProvider>
             <DarkModeWrapper>
@@ -27,7 +28,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </AuthProvider>
         </ThemeProvider>
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   )
 }
+

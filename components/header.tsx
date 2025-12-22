@@ -5,17 +5,27 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { LogOut, Menu, Home, Calendar, BarChart, FileText, Bell, Star, Shield } from "lucide-react"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { LogOut, Menu, Home, Calendar, BarChart, FileText, Bell, Star, Shield, Building2, Users, Settings } from "lucide-react"
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { Badge } from "@/components/ui/badge"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { useAuth } from "@/lib/firebase/AuthContext"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 export default function Header() {
   const pathname = usePathname()
-  const { user, userData, signOut } = useAuth()
+  const { user, userData, organization, signOut } = useAuth()
   const [currentTime, setCurrentTime] = useState(new Date())
   const [isMounted, setIsMounted] = useState(false)
+
+  const isOrgAdmin = userData?.organizationRole === 'admin'
 
   useEffect(() => {
     setIsMounted(true)
@@ -50,8 +60,12 @@ export default function Header() {
     { name: "Statistics", href: "/statistics", icon: <BarChart className="h-4 w-4 mr-2" /> },
     { name: "Important Dates", href: "/important-dates", icon: <Star className="h-4 w-4 mr-2" /> },
     { name: "Short Notes", href: "/notes", icon: <FileText className="h-4 w-4 mr-2" /> },
-    { name: "Admin", href: "/admin", icon: <Shield className="h-4 w-4 mr-2" /> },
   ]
+
+  // Add admin link only for global admins (not org admins)
+  if (userData?.role === 'admin') {
+    navItems.push({ name: "Admin", href: "/admin", icon: <Shield className="h-4 w-4 mr-2" /> })
+  }
 
   if (!isMounted) return null
 
@@ -68,7 +82,18 @@ export default function Header() {
               <h1 className="text-lg font-bold text-white drop-shadow-sm">
                 {getGreeting()}, {displayName}
               </h1>
-              <p className="text-xs text-white/80 font-medium">{currentTime.toLocaleString()}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-xs text-white/80 font-medium">{currentTime.toLocaleString()}</p>
+                {organization && (
+                  <>
+                    <span className="text-white/50">•</span>
+                    <p className="text-xs text-white/80 font-medium flex items-center gap-1">
+                      <Building2 className="h-3 w-3" />
+                      {organization.name}
+                    </p>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
@@ -95,6 +120,42 @@ export default function Header() {
                 )}
               </Link>
             ))}
+            
+            {/* Organization Menu - for org admins */}
+            {isOrgAdmin && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className={`text-sm font-medium flex items-center transition-all duration-200 px-4 py-2.5 rounded-lg ${
+                      pathname.startsWith('/org')
+                        ? "text-white bg-white/25 shadow-md"
+                        : "text-white/90 hover:text-white hover:bg-white/15"
+                    }`}
+                  >
+                    <Building2 className="h-4 w-4 mr-2" />
+                    Organization
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuLabel>Organization</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <Link href="/org/members">
+                    <DropdownMenuItem className="cursor-pointer">
+                      <Users className="h-4 w-4 mr-2" />
+                      Manage Members
+                    </DropdownMenuItem>
+                  </Link>
+                  <Link href="/org/settings">
+                    <DropdownMenuItem className="cursor-pointer">
+                      <Settings className="h-4 w-4 mr-2" />
+                      Settings
+                    </DropdownMenuItem>
+                  </Link>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            
             <div className="ml-2">
               <ThemeToggle />
             </div>
@@ -122,6 +183,8 @@ export default function Header() {
                 </Button>
               </SheetTrigger>
               <SheetContent side="right" className="w-[280px] sm:w-[320px] dark:bg-slate-900 dark:border-slate-800">
+                <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+                <SheetDescription className="sr-only">Access navigation links and your profile</SheetDescription>
                 <div className="flex flex-col h-full">
                   <div className="py-6 border-b dark:border-slate-800">
                     <div className="flex items-center gap-3 mb-3">
@@ -136,6 +199,13 @@ export default function Header() {
                         </p>
                       </div>
                     </div>
+                    {organization && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2 bg-slate-100 dark:bg-slate-800 rounded-lg px-3 py-2">
+                        <Building2 className="h-4 w-4" />
+                        <span>{organization.name}</span>
+                        {isOrgAdmin && <Badge variant="secondary" className="ml-auto text-xs">Admin</Badge>}
+                      </div>
+                    )}
                   </div>
                   <nav className="flex flex-col gap-2 py-4">
                     {navItems.map((item) => (
@@ -158,6 +228,36 @@ export default function Header() {
                         )}
                       </Link>
                     ))}
+                    
+                    {/* Organization links for admins */}
+                    {isOrgAdmin && (
+                      <>
+                        <div className="my-2 border-t dark:border-slate-800"></div>
+                        <p className="px-3 text-xs text-muted-foreground font-medium uppercase">Organization</p>
+                        <Link
+                          href="/org/members"
+                          className={`p-3 rounded-lg flex items-center font-medium transition-all duration-200 ${
+                            pathname === "/org/members" 
+                              ? "bg-gradient-blue text-white shadow-md" 
+                              : "hover:bg-slate-100 dark:hover:bg-slate-800 dark:text-slate-200"
+                          }`}
+                        >
+                          <Users className="h-4 w-4 mr-2" />
+                          Manage Members
+                        </Link>
+                        <Link
+                          href="/org/settings"
+                          className={`p-3 rounded-lg flex items-center font-medium transition-all duration-200 ${
+                            pathname === "/org/settings" 
+                              ? "bg-gradient-blue text-white shadow-md" 
+                              : "hover:bg-slate-100 dark:hover:bg-slate-800 dark:text-slate-200"
+                          }`}
+                        >
+                          <Settings className="h-4 w-4 mr-2" />
+                          Org Settings
+                        </Link>
+                      </>
+                    )}
                   </nav>
                   <div className="mt-auto py-4 border-t dark:border-slate-800">
                     <Button onClick={handleLogout} className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold shadow-md" variant="destructive">
@@ -174,3 +274,4 @@ export default function Header() {
     </header>
   )
 }
+

@@ -1,83 +1,135 @@
 import { NextResponse } from "next/server"
-import mongoose from "mongoose"
+import { getFirestore, doc, getDoc, setDoc, updateDoc, arrayUnion, Timestamp } from 'firebase/firestore'
+import { initializeApp, getApps, getApp } from 'firebase/app'
 
-// Connect to MongoDB
-let isConnected = false
-
-const connectToDatabase = async () => {
-  if (isConnected) return
-
-  try {
-  await mongoose.connect(process.env.MONGODB_URI || "mongodb+srv://amanraj89969:password@cluster0.5khmm.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
-    isConnected = true
-    console.log("Connected to MongoDB")
-  } catch (error) {
-    console.error("Error connecting to MongoDB:", error)
-  }
+// Firebase config
+const firebaseConfig = {
+  apiKey: "AIzaSyDqhM42m3frmjHTD78GEYP2_GYJYEGyNJ8",
+  authDomain: "attendence-f72d7.firebaseapp.com",
+  projectId: "attendence-f72d7",
+  storageBucket: "attendence-f72d7.firebasestorage.app",
+  messagingSenderId: "70105143544",
+  appId: "1:70105143544:web:ab67bb71e73cdc210a430d",
+  measurementId: "G-SSCKVP0G1R"
 }
 
-// Define the attendance schema
-const attendanceSchema = new mongoose.Schema(
-  {
-    Id: Number,
-    Attendance: [
-      {
-        Date: String,
-        Time_In: String,
-        Present_Absent: String,
-        Time_Out: String,
-      },
-    ],
-  },
-  { collection: "teacher_id" },
-)
+// Initialize Firebase for server-side
+const getFirebaseApp = () => {
+  return getApps().length > 0 ? getApp() : initializeApp(firebaseConfig)
+}
 
-// Get the model (or create it if it doesn't exist)
-const Attendance = mongoose.models.Attendance || mongoose.model("Attendance", attendanceSchema)
+const getDb = () => getFirestore(getFirebaseApp())
 
 export async function POST(request: Request) {
   try {
-    await connectToDatabase()
-
-    const { userId, timestamp, location } = await request.json()
-    const currentDate = new Date(timestamp).toISOString().split("T")[0]
-
-    // Find attendance record for this teacher
-    let attendanceRecord = await Attendance.findOne({ Id: Number(userId) })
-
-    const attendanceEntry = {
-      Date: currentDate,
-      Time_In: new Date(timestamp).toLocaleTimeString(),
-      Present_Absent: "Present",
-      Time_Out: null,
+    const { userId, timestamp, location, organizationId } = await request.json()
+    
+    if (!userId) {
+      return NextResponse.json({ success: false, message: "User ID is required" }, { status: 400 })
     }
 
-    if (!attendanceRecord) {
-      // Create new record if none exists
-      attendanceRecord = new Attendance({
-        Id: Number(userId),
-        Attendance: [attendanceEntry],
-      })
-    } else {
-      // Check if attendance already marked for today
-      const todayAttendance = attendanceRecord.Attendance.find((entry: any) => entry.Date === currentDate)
+    const db = getDb()
+    const currentDate = new Date(timestamp)
+    const dateStr = currentDate.toISOString().split("T")[0]
+    const timeStr = currentDate.toLocaleTimeString('en-US', { hour12: true })
+    
+    // Attendance entry
+    const attendanceEntry = {
+      date: dateStr,
+      timeIn: timeStr,
+      timestamp: Timestamp.fromDate(currentDate),
+      status: "present",
+      location: location ? {
+        latitude: location.latitude,
+        longitude: location.longitude,
+        distance: location.distance,
+      } : null,
+      organizationId: organizationId || null,
+    }
 
-      if (todayAttendance) {
-        return NextResponse.json({ success: false, message: "Attendance already marked for today" }, { status: 400 })
+    // Get or create user attendance document
+    const attendanceRef = doc(db, 'attendance', userId)
+    const attendanceDoc = await getDoc(attendanceRef)
+
+    if (attendanceDoc.exists()) {
+      const data = attendanceDoc.data()
+      
+      // Check if already marked today
+      const todayEntry = data.records?.find((r: any) => r.date === dateStr)
+      if (todayEntry) {
+        return NextResponse.json({ 
+          success: false, 
+          message: "Attendance already marked for today" 
+        }, { status: 400 })
       }
 
-      // Add today's attendance
-      attendanceRecord.Attendance.push(attendanceEntry)
+      // Update existing document
+      await updateDoc(attendanceRef, {
+        records: arrayUnion(attendanceEntry),
+        lastMarked: Timestamp.fromDate(currentDate),
+        presentDays: (data.presentDays || 0) + 1,
+        totalDays: (data.totalDays || 0) + 1,
+        updatedAt: Timestamp.now(),
+      })
+    } else {
+      // Create new document
+      await setDoc(attendanceRef, {
+        userId,
+        organizationId: organizationId || null,
+        records: [attendanceEntry],
+        presentDays: 1,
+        absentDays: 0,
+        totalDays: 1,
+        lastMarked: Timestamp.fromDate(currentDate),
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      })
     }
 
-    await attendanceRecord.save()
+    // Log activity
+    await logActivity(db, userId, organizationId, 'attendance_marked', {
+      date: dateStr,
+      time: timeStr,
+      location: location,
+    })
 
     return NextResponse.json({
       success: true,
       message: "Attendance marked successfully",
+      data: {
+        date: dateStr,
+        time: timeStr,
+      }
     })
   } catch (error) {
     console.error("Error marking attendance:", error)
-    return NextResponse.json({ success: false, message: "Error marking attendance" }, { status: 500 })
+    return NextResponse.json({ 
+      success: false, 
+      message: "Error marking attendance" 
+    }, { status: 500 })
+  }
+}
+
+// Helper function to log user activity
+async function logActivity(
+  db: any, 
+  userId: string, 
+  organizationId: string | null,
+  action: string, 
+  details: any
+) {
+  try {
+    const activityRef = doc(db, 'activity_logs', `${userId}_${Date.now()}`)
+    await setDoc(activityRef, {
+      userId,
+      organizationId,
+      action,
+      details,
+      timestamp: Timestamp.now(),
+      date: new Date().toISOString().split('T')[0],
+    })
+  } catch (error) {
+    console.error('Error logging activity:', error)
+    // Don't throw - activity logging is not critical
   }
 }

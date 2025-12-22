@@ -3,19 +3,24 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { getAuth_, onAuthStateChanged, getUserData, logOut, handleGoogleRedirectResult, User, UserData } from './auth';
 import { useRouter, usePathname } from 'next/navigation';
+import { getOrganization, Organization } from './organizations';
 
 interface AuthContextType {
   user: User | null;
   userData: UserData | null;
+  organization: Organization | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  refreshUserData: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   userData: null,
+  organization: null,
   loading: true,
   signOut: async () => {},
+  refreshUserData: async () => {},
 });
 
 export const useAuth = () => {
@@ -29,6 +34,7 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
+  const [organization, setOrganization] = useState<Organization | null>(null);
   const [loading, setLoading] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
   const router = useRouter();
@@ -40,20 +46,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     pathnameRef.current = pathname;
   }, [pathname]);
 
+  // Function to refresh user data (useful after org changes)
+  const refreshUserData = async () => {
+    if (user?.uid) {
+      const data = await getUserData(user.uid);
+      if (data) {
+        setUserData(data as any);
+        if (data.organizationId) {
+          const org = await getOrganization(data.organizationId);
+          setOrganization(org);
+        }
+      }
+    }
+  };
+
   // Handle client-side mounting and auth state
   useEffect(() => {
     setIsMounted(true);
     
     // Set up auth state listener
     const unsubscribe = onAuthStateChanged(getAuth_(), async (firebaseUser) => {
-      console.log('Auth state changed:', firebaseUser ? 'User logged in' : 'No user'); // DEBUG LOG
+      console.log('Auth state changed:', firebaseUser ? 'User logged in' : 'No user');
       
       if (firebaseUser) {
         setUser(firebaseUser);
         
         // Fetch user data from Firestore with error handling
         try {
-          console.log('Fetching user data for:', firebaseUser.uid); // DEBUG LOG
+          console.log('Fetching user data for:', firebaseUser.uid);
           let data = await getUserData(firebaseUser.uid);
           
           // If user doesn't exist in Firestore, create them
@@ -71,8 +91,43 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             data = newUserData;
           }
           
-          console.log('User data loaded:', data); // DEBUG LOG
-          setUserData(data);
+          console.log('User data loaded:', data);
+          setUserData(data as any);
+
+          // Fetch organization data if user has one
+          if (data?.organizationId) {
+            try {
+              const org = await getOrganization(data.organizationId);
+              setOrganization(org);
+              console.log('Organization loaded:', org?.name);
+            } catch (orgError) {
+              console.warn('Could not load organization:', orgError);
+            }
+          }
+          
+          // Determine redirect destination
+          const currentPath = pathnameRef.current;
+          console.log('Current path:', currentPath);
+          
+          // Public paths that don't require auth or org
+          const publicPaths = ['/', '/signup', '/forgot-password'];
+          const onboardingPath = '/onboarding';
+          const isJoinPath = currentPath.startsWith('/join/');
+          
+          if (publicPaths.includes(currentPath)) {
+            // User is on public page - check if they need onboarding
+            if (!data?.organizationId && !isJoinPath) {
+              console.log('User has no organization, redirecting to onboarding');
+              router.push('/onboarding');
+            } else {
+              console.log('Redirecting to dashboard');
+              router.push('/dashboard');
+            }
+          } else if (currentPath !== onboardingPath && !data?.organizationId) {
+            // User is on protected page but has no org - redirect to onboarding
+            console.log('User has no organization, redirecting to onboarding');
+            router.push('/onboarding');
+          }
         } catch (error) {
           console.error('Error fetching user data:', error);
           // Set basic user data from Firebase Auth if Firestore fails
@@ -82,26 +137,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             displayName: firebaseUser.displayName,
             photoURL: firebaseUser.photoURL,
             role: 'teacher',
-          });
-        }
-        
-        // Redirect to dashboard if on login page (use ref for current pathname)
-        const currentPath = pathnameRef.current;
-        console.log('Current path:', currentPath); // DEBUG LOG
-        if (currentPath === '/' || currentPath === '/signup') {
-          console.log('Redirecting to /dashboard'); // DEBUG LOG
-          router.push('/dashboard');
+          } as any);
         }
       } else {
-        console.log('No user, redirecting logic...'); // DEBUG LOG
+        console.log('No user, clearing state...');
         setUser(null);
         setUserData(null);
+        setOrganization(null);
         
-        // Redirect to login if not on public pages (use ref for current pathname)
+        // Redirect to login if not on public pages
         const currentPath = pathnameRef.current;
         const publicPaths = ['/', '/signup', '/forgot-password'];
-        if (!publicPaths.includes(currentPath)) {
-          console.log('Redirecting to /'); // DEBUG LOG
+        const isJoinPath = currentPath.startsWith('/join/');
+        if (!publicPaths.includes(currentPath) && !isJoinPath) {
+          console.log('Redirecting to /');
           router.push('/');
         }
       }
@@ -112,20 +161,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     handleGoogleRedirectResult()
       .then((result) => {
         if (result?.success && result?.user) {
-          console.log('Google redirect result: user authenticated'); // DEBUG LOG
-          // The onAuthStateChanged listener will handle the redirect
+          console.log('Google redirect result: user authenticated');
         }
       })
       .catch(console.warn);
 
     return () => unsubscribe();
-  }, [router]); // Removed pathname from dependencies to avoid re-creating listener
+  }, [router]);
 
   const handleSignOut = async () => {
     try {
       await logOut();
       setUser(null);
       setUserData(null);
+      setOrganization(null);
       router.push('/');
     } catch (error) {
       console.error('Error signing out:', error);
@@ -138,8 +187,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ user, userData, loading, signOut: handleSignOut }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      userData, 
+      organization,
+      loading, 
+      signOut: handleSignOut,
+      refreshUserData,
+    }}>
       {children}
     </AuthContext.Provider>
   );
 };
+

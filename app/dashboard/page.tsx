@@ -35,7 +35,7 @@ const TOUR_COMPLETED_KEY = "tourCompleted"
 
 export default function Dashboard() {
   const router = useRouter()
-  const { user, userData, loading } = useAuth()
+  const { user, userData, organization, loading } = useAuth()
   const [isLocationVerified, setIsLocationVerified] = useState(false)
   const [attendanceMarked, setAttendanceMarked] = useState(false)
   const [currentLocation, setCurrentLocation] = useState<any>(null)
@@ -202,6 +202,7 @@ export default function Dashboard() {
           userId: user?.uid,
           timestamp: new Date().toISOString(),
           location: currentLocation,
+          organizationId: userData?.organizationId || null,
         }),
       })
 

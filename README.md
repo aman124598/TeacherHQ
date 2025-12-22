@@ -1,61 +1,87 @@
 # 🎓 Teacher Attendance System
 
-A modern, location-based attendance management system built with Next.js, designed specifically for educational institutions. This system allows teachers to mark their attendance digitally when they're within the college premises, ensuring accurate and secure attendance tracking.
+A modern, location-based attendance management system built with Next.js 14 and Firebase, designed for educational institutions. Features multi-organization support, GPS-verified attendance, AI-powered notes generation, and a beautiful modern UI.
 
 ![Next.js](https://img.shields.io/badge/Next.js-14-black?style=for-the-badge&logo=next.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
-![MongoDB](https://img.shields.io/badge/MongoDB-4EA94B?style=for-the-badge&logo=mongodb&logoColor=white)
+![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
 
 ## ✨ Features
 
+### 🏢 **Multi-Organization Support**
+
+- **Create Organizations**: Set up your educational institution with custom settings
+- **Invite Teachers**: Share unique 8-character invite codes for easy onboarding
+- **Role-Based Access**: Organization admins vs teachers with different permissions
+- **Data Isolation**: Complete separation of data between organizations
+
 ### 📍 **Location-Based Attendance**
+
 - GPS-based verification using the Haversine formula
-- 500-meter radius validation from college premises
+- Configurable radius validation (default: 700 meters)
 - Real-time location tracking and distance calculation
+- Organization-specific location settings
+
+### 🔐 **Authentication & Security**
+
+- **Firebase Authentication**: Email/password and Google sign-in
+- **Secure Sessions**: Managed through Firebase Auth
+- **Organization Scoping**: All data queries scoped to user's organization
+- **Activity Logging**: Track all user actions for audit purposes
 
 ### 🎯 **Core Functionality**
-- **Digital Attendance Marking**: Secure attendance recording with timestamp
-- **Schedule Management**: View daily and weekly class schedules
+
+- **Digital Attendance Marking**: Secure attendance recording with GPS verification
+- **Schedule Management**: View and manage daily/weekly class schedules
 - **Statistics Dashboard**: Comprehensive attendance analytics and reports
 - **Todo List**: Personal task management for teachers
-- **Important Dates**: Event calendar for academic milestones
+- **Important Dates**: Interactive event calendar for academic milestones
+- **Admin Panel**: Manage users, schedules, and tasks (for admins)
 
 ### 📚 **AI-Powered Notes Generation**
+
 - **PDF Text Extraction**: Upload PDFs and extract text using OCR.Space API
 - **Smart Summarization**: Generate concise notes using Google Gemini AI
 - **Document Repository**: Store and manage teaching materials
-- **Formatted Output**: Well-structured notes with bullet points and formatting
+- **Formatted Output**: Well-structured notes with bullet points
 
 ### 🎨 **Modern UI/UX**
+
 - **Dark/Light Theme**: Beautiful theme switcher with smooth transitions
 - **Responsive Design**: Mobile-first approach with Tailwind CSS
 - **Component Library**: Built with shadcn/ui components
 - **Smooth Animations**: Engaging user experience with custom animations
+- **Glassmorphism & Gradients**: Modern, premium design aesthetic
 
-### 🔐 **Security Features**
-- **Environment-based Configuration**: All API keys secured in environment variables
-- **Authentication Middleware**: Session-based access control
-- **Server-side API Processing**: Secure handling of sensitive operations
+### 📊 **Analytics & Monitoring**
+
+- **Vercel Analytics**: Page view tracking and user analytics
+- **Speed Insights**: Web Vitals monitoring (LCP, FID, CLS)
+- **Activity Logs**: Comprehensive user action tracking
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 
-Before you begin, ensure you have the following installed:
+Before you begin, ensure you have:
+
 - **Node.js** (v18.0.0 or higher)
 - **npm** or **pnpm** (package manager)
 - **Git** (for version control)
+- **Firebase Project** (for authentication and database)
 
 ### 📦 Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/Stranger1298/teacher-attendance-system--1-.git
    cd teacher-attendance-system--1-
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    # or
@@ -63,149 +89,162 @@ Before you begin, ensure you have the following installed:
    ```
 
 3. **Set up environment variables**
+
    ```bash
    cp .env.example .env.local
    ```
 
+4. **Configure Firebase** (see Environment Configuration below)
+
+5. **Run the development server**
+
+   ```bash
+   npm run dev
+   ```
+
+6. **Open [http://localhost:3000](http://localhost:3000)** in your browser
+
 ## ⚙️ Environment Configuration
 
-Create a `.env.local` file in the root directory and configure the following variables:
+Create a `.env.local` file in the root directory:
 
-### 🗄️ **Database Configuration**
+### 🔥 **Firebase Configuration**
+
 ```bash
-# MongoDB Atlas Connection String
-MONGODB_URI=mongodb+srv://username:password@cluster0.xxxxx.mongodb.net/teacher_database?retryWrites=true&w=majority
+# Firebase Config (get from Firebase Console > Project Settings)
+NEXT_PUBLIC_FIREBASE_API_KEY=your_firebase_api_key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
 ```
 
-**Setup Instructions:**
-1. Create a [MongoDB Atlas](https://www.mongodb.com/atlas) account
-2. Create a new cluster
-3. Create a database user with read/write permissions
-4. Get your connection string from Atlas dashboard
-5. Replace the placeholder with your actual connection string
+### 🤖 **API Keys**
 
-### 🤖 **API Keys Configuration**
-
-#### Google Gemini AI API
 ```bash
-GEMINI_API_KEY=your_gemini_api_key_here
+# Google Gemini AI (for notes generation)
+GEMINI_API_KEY=your_gemini_api_key
+
+# OCR.Space API (for PDF text extraction)
+OCR_API_KEY=your_ocr_api_key
 ```
-
-**Setup Instructions:**
-1. Go to [Google AI Studio](https://makersuite.google.com/app/apikey)
-2. Sign in with your Google account
-3. Create a new API key
-4. Copy and paste it in your `.env.local` file
-
-#### OCR.Space API
-```bash
-OCR_API_KEY=your_ocr_space_api_key_here
-```
-
-**Setup Instructions:**
-1. Visit [OCR.Space API](https://ocr.space/ocrapi)
-2. Sign up for a free account
-3. Get your API key from the dashboard
-4. Add it to your environment file
 
 ### 📍 **Location Configuration**
+
 ```bash
-# College Location Coordinates (for attendance verification)
+# Default College Location (can be overridden per organization)
 COLLEGE_LATITUDE=13.072204074042398
 COLLEGE_LONGITUDE=77.50754474895987
 ```
 
-**Setup Instructions:**
-1. Find your college coordinates using [Google Maps](https://maps.google.com)
-2. Right-click on your college location
-3. Copy the latitude and longitude values
-4. Replace the default values in `.env.local`
+## 🗃️ Firebase Setup
 
-### 🔐 **Security Configuration**
-```bash
-# Authentication Settings
-JWT_SECRET=your_secure_jwt_secret_here
-COOKIE_SECRET=your_secure_cookie_secret_here
-NEXTAUTH_SECRET=your_nextauth_secret_here
+### Firestore Collections Structure
 
-# Application URL
-NEXTAUTH_URL=http://localhost:3000
-```
+The application uses the following Firestore collections:
 
-**Setup Instructions:**
-1. Generate secure random strings for secrets (use online generators)
-2. Use at least 32 characters for each secret
-3. Never share these secrets publicly
+#### 1. **users** Collection
 
-## 🗃️ Database Setup
-
-### MongoDB Collections Structure
-
-Your MongoDB database should contain the following collections:
-
-#### 1. **teacher_data** Collection
-```json
+```javascript
 {
-  "_id": ObjectId,
-  "Id": 1,
-  "Name": "John Doe",
-  "Password": 1234
+  uid: "user_id",
+  email: "teacher@school.com",
+  displayName: "John Doe",
+  photoURL: "https://...",
+  role: "teacher",
+  organizationId: "org_id",
+  organizationRole: "admin" | "teacher",
+  organizationName: "Springfield School",
+  createdAt: Timestamp,
+  lastLoginAt: Timestamp
 }
 ```
 
-#### 2. **teacher_id** Collection (Attendance Records)
-```json
+#### 2. **organizations** Collection
+
+```javascript
 {
-  "_id": ObjectId,
-  "Id": 1,
-  "Attendance": [
-    {
-      "Date": "2024-01-15",
-      "Time_In": "09:00",
-      "Present_Absent": "Present",
-      "Time_Out": "17:00"
+  id: "org_id",
+  name: "Springfield School",
+  slug: "springfield-school-a1b2",
+  address: "123 Main St",
+  city: "Springfield",
+  state: "IL",
+  country: "USA",
+  inviteCode: "ABC12345",
+  adminId: "user_id",
+  adminEmail: "admin@school.com",
+  memberCount: 25,
+  locationRadius: 700,
+  settings: {
+    attendanceEnabled: true,
+    locationVerification: true,
+    workingHours: { start: "09:00", end: "17:00" }
+  },
+  createdAt: Timestamp,
+  updatedAt: Timestamp
+}
+```
+
+#### 3. **attendance** Collection
+
+```javascript
+{
+  userId: "user_id",
+  organizationId: "org_id",
+  records: [{
+    date: "2024-01-15",
+    timeIn: "9:00:00 AM",
+    status: "present",
+    location: { latitude: 13.07, longitude: 77.50, distance: 150 }
+  }],
+  presentDays: 20,
+  absentDays: 2,
+  totalDays: 22,
+  lastMarked: Timestamp
+}
+```
+
+#### 4. **activity_logs** Collection
+
+```javascript
+{
+  userId: "user_id",
+  organizationId: "org_id",
+  action: "attendance_marked",
+  details: { date: "2024-01-15", time: "9:00 AM" },
+  timestamp: Timestamp,
+  date: "2024-01-15"
+}
+```
+
+### Firebase Security Rules
+
+Add these rules to your Firestore:
+
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users can read/write their own data
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
-  ]
+
+    // Organization members can read org data
+    match /organizations/{orgId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.organizationRole == 'admin';
+    }
+
+    // Attendance scoped to user
+    match /attendance/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
 }
-```
-
-### Sample Data Import
-
-1. **Create sample teacher data:**
-   ```javascript
-   // In MongoDB Atlas or MongoDB Compass
-   db.teacher_data.insertMany([
-     { "Id": 1, "Name": "John Doe", "Password": 1234 },
-     { "Id": 2, "Name": "Jane Smith", "Password": 5678 }
-   ])
-   ```
-
-2. **Create attendance collection:**
-   ```javascript
-   db.teacher_id.insertMany([
-     { "Id": 1, "Attendance": [] },
-     { "Id": 2, "Attendance": [] }
-   ])
-   ```
-
-## 🏃‍♂️ Running the Application
-
-### Development Mode
-```bash
-npm run dev
-# or
-pnpm dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-### Production Build
-```bash
-npm run build
-npm start
-# or
-pnpm build
-pnpm start
 ```
 
 ## 📁 Project Structure
@@ -214,267 +253,203 @@ pnpm start
 teacher-attendance-system/
 ├── app/                          # Next.js 14 App Directory
 │   ├── api/                      # API Routes
-│   │   ├── attendance/mark/      # Attendance marking endpoint
+│   │   ├── attendance/mark/      # Attendance marking (Firebase)
 │   │   ├── config/location/      # College location config
-│   │   ├── login/               # Authentication endpoint
-│   │   └── notes/               # Notes processing APIs
-│   ├── dashboard/               # Dashboard pages
-│   ├── important-dates/         # Important dates module
-│   ├── notes/                   # Notes generation module
-│   ├── schedule/                # Schedule management
-│   ├── statistics/              # Attendance statistics
-│   ├── globals.css              # Global styles
-│   ├── layout.tsx               # Root layout
-│   └── page.tsx                 # Login page
+│   │   └── notes/                # Notes processing APIs
+│   ├── admin/                    # Admin panel pages
+│   │   ├── users/                # User management
+│   │   ├── schedule/[userId]/    # Schedule editor
+│   │   └── tasks/                # Task management
+│   ├── dashboard/                # Main dashboard
+│   ├── onboarding/               # Organization onboarding
+│   ├── org/                      # Organization management
+│   │   ├── settings/             # Org settings (admin)
+│   │   └── members/              # Member management (admin)
+│   ├── join/[code]/              # Join organization via invite
+│   ├── important-dates/          # Events calendar
+│   ├── notes/                    # AI notes generation
+│   ├── schedule/                 # Schedule view
+│   ├── statistics/               # Attendance stats
+│   └── page.tsx                  # Login page
 ├── components/                   # Reusable React components
-│   ├── ui/                      # shadcn/ui components
-│   ├── header.tsx               # Navigation header
-│   ├── theme-provider.tsx       # Theme management
-│   ├── theme-toggle.tsx         # Dark mode toggle
-│   └── todo-list.tsx            # Todo functionality
-├── hooks/                       # Custom React hooks
-├── lib/                         # Utility functions
-│   ├── distance-calculator.ts   # Haversine formula implementation
-│   ├── pdf-extractor.ts         # PDF processing utilities
-│   └── utils.ts                 # General utilities
-├── public/                      # Static assets
-├── styles/                      # Additional stylesheets
-├── .env.local                   # Environment variables (not in git)
-├── .env.example                 # Environment template
-├── middleware.ts                # Next.js middleware
-├── next.config.mjs              # Next.js configuration
-├── package.json                 # Dependencies and scripts
-├── tailwind.config.ts           # Tailwind CSS configuration
-└── tsconfig.json                # TypeScript configuration
+│   ├── ui/                       # shadcn/ui components
+│   ├── header.tsx                # Navigation header
+│   ├── admin-sidebar.tsx         # Admin navigation
+│   ├── important-dates-calendar.tsx
+│   └── todo-list.tsx
+├── lib/                          # Utility functions
+│   ├── firebase/                 # Firebase modules
+│   │   ├── config.ts             # Firebase configuration
+│   │   ├── auth.ts               # Authentication functions
+│   │   ├── AuthContext.tsx       # Auth context provider
+│   │   ├── firestore.ts          # Firestore CRUD operations
+│   │   └── organizations.ts      # Organization management
+│   ├── distance-calculator.ts    # Haversine formula
+│   └── utils.ts                  # General utilities
+├── .env.local                    # Environment variables
+├── middleware.ts                 # Next.js middleware
+└── package.json                  # Dependencies
 ```
 
 ## 🎯 Usage Guide
 
-### 👨‍🏫 **For Teachers**
+### 👨‍🏫 **For New Users**
 
-1. **Login**
-   - Use your Teacher ID and Password
-   - System validates credentials against MongoDB
+1. **Sign Up / Login**
 
-2. **Mark Attendance**
+   - Use email/password or Google sign-in
+   - First-time users are redirected to onboarding
+
+2. **Create or Join Organization**
+
+   - **Create**: Set up your school/college as admin
+   - **Join**: Enter invite code from your admin
+
+3. **Mark Attendance**
+
    - Click "Verify My Location" on dashboard
-   - Ensure you're within 500m of college
-   - Click "Mark Attendance" when location is verified
+   - Must be within organization's defined radius
+   - Click "Mark Attendance" when verified
 
-3. **Generate Notes**
-   - Navigate to "Short Notes" section
-   - Upload a PDF document
-   - System extracts text and generates concise notes using AI
+4. **Explore Features**
+   - View your schedule
+   - Check attendance statistics
+   - Generate AI-powered notes from PDFs
+   - Manage important dates and todos
 
-4. **Manage Documents**
-   - Upload teaching materials to document repository
-   - Organize and categorize your files
-   - Download or delete documents as needed
+### 👨‍💼 **For Organization Admins**
 
-5. **View Statistics**
-   - Check attendance percentage and records
-   - View monthly attendance patterns
-   - Track present/absent days
+1. **Access Organization Settings**
 
-### 👨‍💼 **For Administrators**
+   - Click "Organization" in header menu
+   - Manage settings, invite code, and members
 
-1. **User Management**
-   - Add new teachers to `teacher_data` collection
-   - Set unique Teacher IDs and passwords
-   - Initialize attendance records in `teacher_id` collection
+2. **Invite Teachers**
 
-2. **Location Configuration**
-   - Update college coordinates in environment variables
-   - Adjust attendance radius if needed (default: 500m)
+   - Copy your organization's invite code
+   - Share with teachers to join
+   - Regenerate code if needed for security
+
+3. **Manage Members**
+
+   - View all organization members
+   - Promote teachers to admin
+   - Remove members if needed
+
+4. **Configure Attendance**
+   - Set location radius for verification
+   - Configure working hours
+   - Enable/disable location verification
+
+### 🔧 **Admin Panel** (Global Admins)
+
+1. **User Management**: View and manage all users
+2. **Schedule Editor**: Assign/modify teacher schedules
+3. **Task Management**: Create tasks and notices
+4. **Statistics**: View organization-wide stats
 
 ## 🛠️ API Documentation
 
-### Authentication Endpoints
+### Authentication
 
-#### POST `/api/login`
-```javascript
-// Request
-{
-  "teacherId": "1",
-  "password": "1234"
-}
+- Handled entirely by Firebase Auth
+- Supports email/password and Google OAuth
+- Session managed via Firebase tokens
 
-// Response
+### Attendance
+
+```typescript
+POST /api/attendance/mark
 {
-  "success": true,
-  "teacher": {
-    "Id": 1,
-    "Name": "John Doe"
-  }
+  userId: string,
+  timestamp: string,
+  location: { latitude, longitude, distance },
+  organizationId: string
 }
+// Saves to Firebase Firestore with activity logging
 ```
 
-### Attendance Endpoints
+### Notes Processing
 
-#### POST `/api/attendance/mark`
-```javascript
-// Request
-{
-  "userId": 1,
-  "timestamp": "2024-01-15T09:00:00.000Z",
-  "location": {
-    "latitude": 13.0722,
-    "longitude": 77.5075,
-    "distance": 250
-  }
-}
-
-// Response
-{
-  "success": true,
-  "message": "Attendance marked successfully"
-}
+```typescript
+POST / api / notes / ocr; // Extract text from PDF
+POST / api / notes / generate; // Generate notes with Gemini AI
 ```
 
-### Notes Processing Endpoints
+## 🚀 Deployment
 
-#### POST `/api/notes/ocr`
-- **Purpose**: Extract text from PDF files
-- **Input**: FormData with PDF file
-- **Output**: Extracted text string
+### Vercel (Recommended)
 
-#### POST `/api/notes/generate`
-- **Purpose**: Generate notes using Gemini AI
-- **Input**: JSON with text content
-- **Output**: Formatted notes
+1. **Connect Repository**
 
-## 🎨 Customization
+   - Import project to Vercel
+   - Connect your GitHub repository
 
-### Theme Customization
+2. **Configure Environment Variables**
 
-The application supports extensive theming through Tailwind CSS and CSS custom properties:
+   - Add all `.env.local` variables to Vercel dashboard
 
-1. **Color Schemes**: Edit `app/globals.css` for custom color variables
-2. **Component Styling**: Modify components in `components/ui/`
-3. **Dark Mode**: Customize dark theme colors in CSS variables
+3. **Deploy**
+   - Automatic deployment on push to main branch
 
-### Feature Extensions
+### Analytics
 
-1. **Additional Modules**: Add new pages in `app/` directory
-2. **Custom Components**: Create reusable components in `components/`
-3. **API Extensions**: Add new endpoints in `app/api/`
+The app includes built-in Vercel Analytics and Speed Insights:
+
+- Page view tracking
+- Web Vitals monitoring
+- Works automatically when deployed to Vercel
 
 ## 🔧 Troubleshooting
 
 ### Common Issues
 
-#### Database Connection Issues
-```bash
-Error: MongoServerError: Authentication failed
-```
-**Solution**: Verify MongoDB credentials and connection string
+| Issue                     | Solution                                        |
+| ------------------------- | ----------------------------------------------- |
+| Firebase auth not working | Check Firebase config in `.env.local`           |
+| Location not verifying    | Ensure HTTPS and location permissions           |
+| Organization not loading  | Check Firestore rules and user's organizationId |
+| Build errors              | Run `npm install` and check TypeScript errors   |
 
-#### API Key Issues
-```bash
-Error: 401 Unauthorized
-```
-**Solution**: Check API key validity and environment variable names
+### Debug Mode
 
-#### Location Services
-```bash
-Error: Geolocation not supported
-```
-**Solution**: Ensure HTTPS in production and location permissions
+The app includes console logging for development:
 
-#### Build Issues
-```bash
-Error: Module not found
-```
-**Solution**: Run `npm install` and check import paths
-
-### Performance Optimization
-
-1. **Image Optimization**: Use Next.js Image component
-2. **Bundle Analysis**: Run `npm run build` and analyze bundle size
-3. **Database Indexing**: Add indexes on frequently queried fields
-4. **API Caching**: Implement Redis for API response caching
-
-## 🚀 Local Development & Setup
-
-### Running the Application
-
-1. **Install Dependencies**
-   ```bash
-   npm install
-   # or
-   pnpm install
-   ```
-
-2. **Setup Environment Variables**
-   - Copy `.env.example` to `.env.local`
-   - Fill in your actual values for MongoDB, API keys, etc.
-
-3. **Start Development Server**
-   ```bash
-   npm run dev
-   # or
-   pnpm dev
-   ```
-
-4. **Access the Application**
-   - Frontend: http://localhost:3000
-   - API Routes: http://localhost:3000/api/*
-
-### Production Build (Local)
-
-```bash
-# Build the application
-npm run build
-
-# Start production server
-npm start
-```
+- Auth state changes
+- Organization loading
+- API responses
 
 ## 🤝 Contributing
 
-1. **Fork the repository**
-2. **Create a feature branch**: `git checkout -b feature/amazing-feature`
-3. **Commit changes**: `git commit -m 'Add amazing feature'`
-4. **Push to branch**: `git push origin feature/amazing-feature`
-5. **Open a Pull Request**
-
-### Development Guidelines
-
-- Follow TypeScript best practices
-- Use meaningful commit messages
-- Add proper error handling
-- Update documentation for new features
-- Test on multiple devices and browsers
+1. Fork the repository
+2. Create feature branch: `git checkout -b feature/amazing-feature`
+3. Commit changes: `git commit -m 'Add amazing feature'`
+4. Push to branch: `git push origin feature/amazing-feature`
+5. Open a Pull Request
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License.
 
 ## 👨‍💻 Author
 
 **Aman Raj**
+
 - GitHub: [@Stranger1298](https://github.com/Stranger1298)
 - Project: [Teacher Attendance System](https://github.com/Stranger1298/teacher-attendance-system--1-)
 
 ## 🙏 Acknowledgments
 
-- **Next.js Team** for the amazing framework
-- **shadcn/ui** for beautiful component library
-- **MongoDB** for robust database solutions
-- **Google AI** for Gemini API
-- **OCR.Space** for text extraction services
-
-## 📞 Support
-
-If you encounter any issues or have questions:
-
-1. **Check Documentation**: Review this README and inline comments
-2. **Search Issues**: Look through existing GitHub issues
-3. **Create Issue**: Open a new issue with detailed description
-4. **Discord/Email**: Contact maintainers directly
+- **Next.js** - React framework
+- **Firebase** - Authentication & database
+- **shadcn/ui** - Component library
+- **Tailwind CSS** - Styling
+- **Google Gemini AI** - Notes generation
+- **OCR.Space** - PDF text extraction
+- **Vercel** - Hosting & analytics
 
 ---
 
 **Made with ❤️ for Education**
 
-*This system is designed to modernize attendance tracking in educational institutions while maintaining security and ease of use.*
+_Modernizing attendance tracking in educational institutions with security, multi-tenancy, and ease of use._

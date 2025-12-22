@@ -24,6 +24,10 @@ export interface UserData {
   teacherId?: string;
   createdAt?: any;
   lastLoginAt?: any;
+  // Organization fields
+  organizationId?: string;
+  organizationRole?: 'admin' | 'teacher';
+  organizationName?: string;
 }
 
 // Sign in with email and password
