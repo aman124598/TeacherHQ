@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { getAuth_, onAuthStateChanged, getUserData, logOut, handleGoogleRedirectResult, User, UserData } from './auth';
 import { useRouter, usePathname } from 'next/navigation';
 
@@ -33,18 +33,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isMounted, setIsMounted] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+  
+  // Use ref to always have current pathname value (avoids stale closure)
+  const pathnameRef = useRef(pathname);
+  useEffect(() => {
+    pathnameRef.current = pathname;
+  }, [pathname]);
 
-  // Handle client-side mounting to avoid hydration issues
+  // Handle client-side mounting and auth state
   useEffect(() => {
     setIsMounted(true);
-    // Handle Google redirect result on mount
-    handleGoogleRedirectResult().catch(console.warn);
-  }, []);
-
-  useEffect(() => {
-    // Only run on client side
-    if (!isMounted) return;
-
+    
+    // Set up auth state listener
     const unsubscribe = onAuthStateChanged(getAuth_(), async (firebaseUser) => {
       console.log('Auth state changed:', firebaseUser ? 'User logged in' : 'No user'); // DEBUG LOG
       
@@ -85,9 +85,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           });
         }
         
-        // Redirect to dashboard if on login page
-        console.log('Current path:', pathname); // DEBUG LOG
-        if (pathname === '/' || pathname === '/signup') {
+        // Redirect to dashboard if on login page (use ref for current pathname)
+        const currentPath = pathnameRef.current;
+        console.log('Current path:', currentPath); // DEBUG LOG
+        if (currentPath === '/' || currentPath === '/signup') {
           console.log('Redirecting to /dashboard'); // DEBUG LOG
           router.push('/dashboard');
         }
@@ -96,18 +97,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(null);
         setUserData(null);
         
-        // Redirect to login if not on public pages
+        // Redirect to login if not on public pages (use ref for current pathname)
+        const currentPath = pathnameRef.current;
         const publicPaths = ['/', '/signup', '/forgot-password'];
-        if (!publicPaths.includes(pathname)) {
+        if (!publicPaths.includes(currentPath)) {
           console.log('Redirecting to /'); // DEBUG LOG
           router.push('/');
         }
       }
       setLoading(false);
     });
+    
+    // Handle Google redirect result after setting up listener
+    handleGoogleRedirectResult()
+      .then((result) => {
+        if (result?.success && result?.user) {
+          console.log('Google redirect result: user authenticated'); // DEBUG LOG
+          // The onAuthStateChanged listener will handle the redirect
+        }
+      })
+      .catch(console.warn);
 
     return () => unsubscribe();
-  }, [isMounted, router, pathname]);
+  }, [router]); // Removed pathname from dependencies to avoid re-creating listener
 
   const handleSignOut = async () => {
     try {
