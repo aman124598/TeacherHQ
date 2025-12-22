@@ -1,17 +1,7 @@
 import { NextResponse } from "next/server"
 import { getFirestore, doc, getDoc, setDoc, updateDoc, arrayUnion, Timestamp } from 'firebase/firestore'
 import { initializeApp, getApps, getApp } from 'firebase/app'
-
-// Firebase config
-const firebaseConfig = {
-  apiKey: "AIzaSyDqhM42m3frmjHTD78GEYP2_GYJYEGyNJ8",
-  authDomain: "attendence-f72d7.firebaseapp.com",
-  projectId: "attendence-f72d7",
-  storageBucket: "attendence-f72d7.firebasestorage.app",
-  messagingSenderId: "70105143544",
-  appId: "1:70105143544:web:ab67bb71e73cdc210a430d",
-  measurementId: "G-SSCKVP0G1R"
-}
+import firebaseConfig from '@/lib/firebase/config'
 
 // Initialize Firebase for server-side
 const getFirebaseApp = () => {
