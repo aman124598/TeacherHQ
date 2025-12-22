@@ -41,15 +41,22 @@ export default function LoginPage() {
     setError("")
     setIsLoading(true)
 
-    const result = await signInWithGoogle()
-    
-    // With redirect flow, the page will redirect to Google
-    // If there's an error before redirect, show it
-    if (!result.success && result.error) {
-      setError(result.error)
+    try {
+      const result = await signInWithGoogle()
+      
+      if (result.success && result.user) {
+        // Popup successful, redirect to dashboard
+        console.log('Google login successful, redirecting to dashboard...'); // DEBUG LOG
+        router.push("/dashboard")
+      } else if (result.error) {
+        setError(result.error)
+      }
+    } catch (err: any) {
+      console.error('Google login error:', err)
+      setError("An error occurred during sign in")
+    } finally {
       setIsLoading(false)
     }
-    // Otherwise, the redirect will happen and user will come back after auth
   }
 
   if (authLoading) {

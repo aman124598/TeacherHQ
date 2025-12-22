@@ -1,11 +1,17 @@
-import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, User, sendPasswordResetEmail, updateProfile } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, User, sendPasswordResetEmail, updateProfile } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { getFirebaseApp } from './config';
 
 // Initialize Firebase services lazily
 const getAuthInstance = () => getAuth(getFirebaseApp());
 const getDbInstance = () => getFirestore(getFirebaseApp());
-const getGoogleProvider = () => new GoogleAuthProvider();
+const getGoogleProvider = () => {
+  const provider = new GoogleAuthProvider();
+  // Add scopes if needed
+  provider.addScope('profile');
+  provider.addScope('email');
+  return provider;
+};
 
 // User data interface
 export interface UserData {
@@ -54,38 +60,39 @@ export const signUpWithEmail = async (email: string, password: string, displayNa
   }
 };
 
-// Sign in with Google using redirect (works better with Next.js)
+// Sign in with Google using popup (more reliable in Next.js)
 export const signInWithGoogle = async () => {
   try {
-    await signInWithRedirect(getAuthInstance(), getGoogleProvider());
-    return { success: true, user: null }; // User will be set after redirect
+    console.log('Starting Google sign-in with popup...'); // DEBUG LOG
+    const auth = getAuthInstance();
+    const provider = getGoogleProvider();
+    
+    const result = await signInWithPopup(auth, provider);
+    console.log('Google sign-in successful:', result.user.email); // DEBUG LOG
+    
+    // Create or update user document in Firestore
+    try {
+      const userDoc = await getDoc(doc(getDbInstance(), 'users', result.user.uid));
+      if (!userDoc.exists()) {
+        await createUserDocument(result.user);
+      } else {
+        await updateUserLastLogin(result.user.uid);
+      }
+    } catch (e) {
+      console.warn('Could not update Firestore user data:', e);
+    }
+    
+    return { success: true, user: result.user };
   } catch (error: any) {
+    console.error('Google sign-in error:', error); // DEBUG LOG
     return { success: false, error: getErrorMessage(error.code) };
   }
 };
 
-// Handle Google redirect result (call this on app load)
+// Legacy function for handling redirect result (kept for backwards compatibility)
 export const handleGoogleRedirectResult = async () => {
-  try {
-    const result = await getRedirectResult(getAuthInstance());
-    if (result?.user) {
-      // Try to create/update user document
-      try {
-        const userDoc = await getDoc(doc(getDbInstance(), 'users', result.user.uid));
-        if (!userDoc.exists()) {
-          await createUserDocument(result.user);
-        } else {
-          await updateUserLastLogin(result.user.uid);
-        }
-      } catch (e) {
-        console.warn('Could not update Firestore user data:', e);
-      }
-      return { success: true, user: result.user };
-    }
-    return { success: false, user: null };
-  } catch (error: any) {
-    return { success: false, error: getErrorMessage(error.code) };
-  }
+  // With popup flow, this is no longer needed, but keep for compatibility
+  return { success: false, user: null };
 };
 
 // Sign out
