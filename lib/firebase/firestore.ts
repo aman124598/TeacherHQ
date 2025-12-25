@@ -407,6 +407,103 @@ export const deleteTask = async (taskId: string) => {
 
 // --- Attendance Management ---
 
+export interface AttendanceEntry {
+  date: string;
+  timeIn: string;
+  timestamp: any;
+  status: string;
+  location?: {
+    latitude: number;
+    longitude: number;
+    distance: number;
+  } | null;
+  organizationId?: string | null;
+}
+
+// Mark attendance directly from client (with authenticated user)
+export const markAttendance = async (
+  userId: string,
+  organizationId: string | null,
+  location?: { latitude: number; longitude: number; distance: number } | null
+) => {
+  try {
+    const db = getDb();
+    const currentDate = new Date();
+    const dateStr = currentDate.toISOString().split('T')[0];
+    const timeStr = currentDate.toLocaleTimeString('en-US', { hour12: true });
+
+    // Create attendance entry with timestamp
+    const attendanceEntry: AttendanceEntry = {
+      date: dateStr,
+      timeIn: timeStr,
+      timestamp: Timestamp.now(),
+      status: 'present',
+      location: location || null,
+      organizationId: organizationId || null,
+    };
+
+    // Get or create user attendance document
+    const attendanceRef = doc(db, 'attendance', userId);
+    const attendanceDoc = await getDoc(attendanceRef);
+
+    if (attendanceDoc.exists()) {
+      const data = attendanceDoc.data();
+
+      // Check if already marked today
+      const todayEntry = data.records?.find((r: any) => r.date === dateStr);
+      if (todayEntry) {
+        return {
+          success: false,
+          message: 'Attendance already marked for today',
+          alreadyMarked: true,
+        };
+      }
+
+      // Update existing document with arrayUnion
+      const { arrayUnion } = await import('firebase/firestore');
+      await updateDoc(attendanceRef, {
+        records: arrayUnion(attendanceEntry),
+        lastMarked: Timestamp.now(),
+        presentDays: (data.presentDays || 0) + 1,
+        totalDays: (data.totalDays || 0) + 1,
+        updatedAt: Timestamp.now(),
+      });
+    } else {
+      // Create new document
+      await setDoc(attendanceRef, {
+        userId,
+        organizationId: organizationId || null,
+        records: [attendanceEntry],
+        presentDays: 1,
+        absentDays: 0,
+        totalDays: 1,
+        lastMarked: Timestamp.now(),
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      });
+    }
+
+    // Log activity
+    await logActivity(userId, 'attendance_marked', {
+      date: dateStr,
+      time: timeStr,
+      location: location,
+    }, organizationId || undefined);
+
+    return {
+      success: true,
+      message: 'Attendance marked successfully',
+      data: {
+        date: dateStr,
+        time: timeStr,
+      },
+    };
+  } catch (error) {
+    console.error('Error marking attendance:', error);
+    return { success: false, message: 'Error marking attendance', error };
+  }
+};
+
 export const updateAttendance = async (userId: string, attendanceData: any) => {
   try {
     const db = getDb();

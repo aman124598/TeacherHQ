@@ -74,10 +74,12 @@ export default function Header() {
       <div className="container mx-auto px-4 py-4">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-4 animate-slide-in-left">
-            <Avatar className="h-12 w-12 bg-white/90 dark:bg-slate-700 text-purple-700 dark:text-white border-2 border-white/50 dark:border-slate-600 shadow-lg hover-lift cursor-pointer">
-              {photoURL && <AvatarImage src={photoURL} alt={displayName} />}
-              <AvatarFallback className="text-lg font-bold">{userInitial}</AvatarFallback>
-            </Avatar>
+            <Link href="/profile">
+              <Avatar className="h-12 w-12 bg-white/90 dark:bg-slate-700 text-purple-700 dark:text-white border-2 border-white/50 dark:border-slate-600 shadow-lg hover-lift cursor-pointer transition-transform hover:scale-105">
+                {photoURL && <AvatarImage src={photoURL} alt={displayName} />}
+                <AvatarFallback className="text-lg font-bold">{userInitial}</AvatarFallback>
+              </Avatar>
+            </Link>
             <div className="hidden md:block">
               <h1 className="text-lg font-bold text-white drop-shadow-sm">
                 {getGreeting()}, {displayName}
@@ -186,8 +188,8 @@ export default function Header() {
                 <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
                 <SheetDescription className="sr-only">Access navigation links and your profile</SheetDescription>
                 <div className="flex flex-col h-full">
-                  <div className="py-6 border-b dark:border-slate-800">
-                    <div className="flex items-center gap-3 mb-3">
+                <div className="py-6 border-b dark:border-slate-800">
+                    <Link href="/profile" className="flex items-center gap-3 mb-3 hover:opacity-80 transition-opacity">
                       <Avatar className="h-12 w-12 bg-gradient-blue border-2 border-purple-200 dark:border-purple-700">
                         {photoURL && <AvatarImage src={photoURL} alt={displayName} />}
                         <AvatarFallback className="text-white font-bold">{userInitial}</AvatarFallback>
@@ -198,9 +200,15 @@ export default function Header() {
                           {user?.email || "No email"}
                         </p>
                       </div>
-                    </div>
+                    </Link>
+                    <Link
+                      href="/profile"
+                      className="w-full flex items-center justify-center gap-2 text-sm py-2 px-3 rounded-lg bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
+                    >
+                      View Profile
+                    </Link>
                     {organization && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2 bg-slate-100 dark:bg-slate-800 rounded-lg px-3 py-2">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mt-3 bg-slate-100 dark:bg-slate-800 rounded-lg px-3 py-2">
                         <Building2 className="h-4 w-4" />
                         <span>{organization.name}</span>
                         {isOrgAdmin && <Badge variant="secondary" className="ml-auto text-xs">Admin</Badge>}

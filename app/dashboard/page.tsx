@@ -189,26 +189,31 @@ export default function Dashboard() {
       return
     }
 
+    if (!user?.uid) {
+      setAttendanceStatus("error")
+      return
+    }
+
     setIsMarkingAttendance(true)
     setAttendanceStatus(null)
 
     try {
-      const response = await fetch("/api/attendance/mark", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          userId: user?.uid,
-          timestamp: new Date().toISOString(),
-          location: currentLocation,
-          organizationId: userData?.organizationId || null,
-        }),
-      })
+      const { markAttendance } = await import("@/lib/firebase/firestore")
+      
+      const result = await markAttendance(
+        user.uid,
+        userData?.organizationId || null,
+        currentLocation ? {
+          latitude: currentLocation.latitude,
+          longitude: currentLocation.longitude,
+          distance: currentLocation.distance,
+        } : null
+      )
 
-      const data = await response.json()
-
-      if (data.success) {
+      if (result.success) {
+        setAttendanceMarked(true)
+        setAttendanceStatus("success")
+      } else if (result.alreadyMarked) {
         setAttendanceMarked(true)
         setAttendanceStatus("success")
       } else {

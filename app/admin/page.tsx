@@ -91,6 +91,13 @@ export default function AdminDashboard() {
       gradient: "from-blue-500 to-indigo-600"
     },
     {
+      title: "Attendance Records",
+      description: "View all attendance with timestamps",
+      icon: Clock,
+      href: "/admin/attendance",
+      gradient: "from-emerald-500 to-green-600"
+    },
+    {
       title: "Create New Task / Notice",
       description: "Send announcements to teachers",
       icon: CheckSquare,
