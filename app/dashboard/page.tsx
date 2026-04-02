@@ -43,6 +43,7 @@ export default function Dashboard() {
   const [isMarkingAttendance, setIsMarkingAttendance] = useState(false)
   const [attendanceStatus, setAttendanceStatus] = useState<string | null>(null)
   const [locationError, setLocationError] = useState<string | null>(null)
+  const [isVerifyingLocation, setIsVerifyingLocation] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([])
   const [collegeLocation, setCollegeLocation] = useState({ latitude: 0, longitude: 0 })
@@ -143,44 +144,79 @@ export default function Dashboard() {
     return "Good evening"
   }
 
-  const getLocation = () => {
+  const getLocation = async () => {
     setLocationError(null)
+    setCurrentLocation(null)
+    setIsLocationVerified(false)
+    setIsVerifyingLocation(true)
+    setAttendanceStatus(null)
 
     if (!navigator.geolocation) {
       setLocationError("Geolocation is not supported by your browser")
+      setIsVerifyingLocation(false)
       return
     }
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const userLat = position.coords.latitude
-        const userLng = position.coords.longitude
-
-        const { distanceInMeters, isWithinRange } = calculateDistance(
-          userLat,
-          userLng,
-          collegeLocation.latitude,
-          collegeLocation.longitude,
-        )
-
-        setCurrentLocation({
-          latitude: userLat,
-          longitude: userLng,
-          distance: distanceInMeters,
+    try {
+      const getPos = () => new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 5000,
+          maximumAge: 0,
         })
+      });
 
-        setIsWithinRange(isWithinRange)
-        setIsLocationVerified(true)
-      },
-      (error) => {
-        setLocationError(error.message)
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 5000,
-        maximumAge: 0,
-      },
-    )
+      // Anti-Spoofing: Collect 3 samples with 800ms intervals
+      const samples: GeolocationCoordinates[] = [];
+      for (let i = 0; i < 3; i++) {
+        const pos = await getPos();
+        samples.push(pos.coords);
+        if (i < 2) await new Promise(r => setTimeout(r, 800));
+      }
+
+      const first = samples[0];
+      
+      // 1. Check for "GPS Jitter"
+      // Real GPS naturally fluctuates by tiny amounts. Fake GPS is usually mathematically static.
+      const isStatic = samples.every(s => s.latitude === first.latitude && s.longitude === first.longitude);
+      
+      // 2. Check for missing real-world metrics (altitude, speed, heading)
+      // Fake GPS apps often fail to generate these realistically.
+      const isMissingMetrics = first.altitude === null && first.speed === null && first.heading === null;
+
+      // If coordinates are perfectly static across multiple readings AND lack hardware metrics, it's highly likely spoofed.
+      // However, Laptops/Desktops use WiFi/IP routing which is naturally static. We only enforce this on Mobile.
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
+      if (isMobile && isStatic && isMissingMetrics) {
+          setLocationError("Mock location detected. Please disable any Fake GPS apps and use real GPS.");
+          setIsVerifyingLocation(false);
+          return;
+      }
+
+      const userLat = first.latitude
+      const userLng = first.longitude
+
+      const { distanceInMeters, isWithinRange } = calculateDistance(
+        userLat,
+        userLng,
+        collegeLocation.latitude,
+        collegeLocation.longitude,
+      )
+
+      setCurrentLocation({
+        latitude: userLat,
+        longitude: userLng,
+        distance: distanceInMeters,
+      })
+
+      setIsWithinRange(isWithinRange)
+      setIsLocationVerified(true)
+    } catch (error: any) {
+      setLocationError(error.message || "Failed to retrieve location")
+    } finally {
+      setIsVerifyingLocation(false)
+    }
   }
 
   const handleAttendanceSubmit = async () => {
@@ -369,10 +405,20 @@ export default function Dashboard() {
             <Button 
               variant="outline" 
               onClick={getLocation} 
-              className="w-full flex items-center justify-center h-11 border-2 border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-slate-700 font-semibold transition-all duration-200 hover-lift"
+              disabled={isVerifyingLocation}
+              className="w-full flex items-center justify-center h-11 border-2 border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-slate-700 font-semibold transition-all duration-200 hover-lift disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              <MapPin className="h-5 w-5 mr-2" />
-              Verify My Location
+              {isVerifyingLocation ? (
+                 <>
+                   <div className="animate-spin mr-2 h-4 w-4 border-2 border-blue-600 dark:border-blue-400 border-t-transparent rounded-full"></div>
+                   Checking Anti-Spoofing...
+                 </>
+              ) : (
+                 <>
+                   <MapPin className="h-5 w-5 mr-2" />
+                   Verify My Location
+                 </>
+              )}
             </Button>
 
             {locationError && (

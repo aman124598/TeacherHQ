@@ -708,3 +708,85 @@ export const getOrganizationEvents = async (organizationId: string): Promise<Eve
     return [];
   }
 };
+
+// --- Leave Management ---
+
+export interface LeaveData {
+  id?: string;
+  userId: string;
+  userName?: string;
+  organizationId: string;
+  type: "sick" | "casual" | "half-day" | "other";
+  reason: string;
+  startDate: string;
+  endDate: string;
+  status: "pending" | "approved" | "rejected";
+  appliedAt: any;
+  updatedAt?: any;
+}
+
+export const applyForLeave = async (leave: Omit<LeaveData, 'id' | 'appliedAt' | 'status'>) => {
+  try {
+    const db = getDb();
+    const leavesRef = collection(db, 'leaves');
+    const docRef = await addDoc(leavesRef, {
+      ...leave,
+      status: "pending",
+      appliedAt: Timestamp.now(),
+      updatedAt: Timestamp.now()
+    });
+    return { success: true, id: docRef.id };
+  } catch (error) {
+    console.error('Error applying for leave:', error);
+    return { success: false, error };
+  }
+};
+
+export const getUserLeaves = async (userId: string): Promise<LeaveData[]> => {
+  try {
+    const db = getDb();
+    const leavesRef = collection(db, 'leaves');
+    const q = query(leavesRef, where('userId', '==', userId));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as LeaveData));
+  } catch (error) {
+    console.error('Error fetching user leaves:', error);
+    return [];
+  }
+};
+
+export const getOrganizationLeaves = async (organizationId: string): Promise<LeaveData[]> => {
+  try {
+    const db = getDb();
+    const leavesRef = collection(db, 'leaves');
+    const q = query(leavesRef, where('organizationId', '==', organizationId));
+    const snapshot = await getDocs(q);
+    
+    // Manual sorting inside array since Firebase needs a composite index if we combine where and orderBy 
+    const leaves = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as LeaveData));
+    return leaves.sort((a,b) => {
+      const timeA = a.appliedAt?.seconds || 0;
+      const timeB = b.appliedAt?.seconds || 0;
+      return timeB - timeA;
+    });
+  } catch (error) {
+    console.error('Error fetching organization leaves:', error);
+    return [];
+  }
+};
+
+export const updateLeaveStatus = async (leaveId: string, status: "approved" | "rejected") => {
+  try {
+    const db = getDb();
+    const docRef = doc(db, 'leaves', leaveId);
+    await updateDoc(docRef, {
+      status,
+      updatedAt: Timestamp.now()
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating leave status:', error);
+    return { success: false, error };
+  }
+};
+

@@ -2,8 +2,12 @@
 
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { BarChart4, Calendar, CheckCircle, Clock, XCircle } from "lucide-react"
+import { BarChart4, Calendar, CheckCircle, Clock, XCircle, Download } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
+import { Button } from "@/components/ui/button"
+import jsPDF from "jspdf"
+import autoTable from "jspdf-autotable"
+import Papa from "papaparse"
 import { useAuth } from "@/lib/firebase/AuthContext"
 
 export default function Statistics() {
@@ -29,6 +33,50 @@ export default function Statistics() {
     setIsMounted(true)
   }, [])
 
+  const exportPDF = () => {
+    const doc = new jsPDF()
+    doc.setFontSize(20)
+    doc.text("Attendance Report", 14, 22)
+    doc.setFontSize(12)
+    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 32)
+    
+    // Overview Table
+    autoTable(doc, {
+      startY: 40,
+      head: [['Metric', 'Value']],
+      body: [
+        ['Present Days', attendanceData.present],
+        ['Absent Days', attendanceData.absent],
+        ['Total Allowed Leaves', attendanceData.totalLeaves],
+        ['Leaves Left', attendanceData.leaveLeft],
+        ['Attendance Rate', `${Math.round((attendanceData.present / (attendanceData.present + attendanceData.absent)) * 100)}%`]
+      ],
+    })
+
+    // Monthly Data Table
+    autoTable(doc, {
+      startY: (doc as any).lastAutoTable.finalY + 15,
+      head: [['Month', 'Present', 'Absent']],
+      body: attendanceData.monthlyData.map(m => [m.month, m.present, m.absent]),
+    })
+
+    doc.save("attendance_report.pdf")
+  }
+
+  const exportCSV = () => {
+    // Generate CSV for monthly data
+    const csv = Papa.unparse(attendanceData.monthlyData)
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement("a")
+    const url = URL.createObjectURL(blob)
+    link.setAttribute("href", url)
+    link.setAttribute("download", "attendance_monthly_data.csv")
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
   if (!isMounted) return null
 
   // Show loading state while auth is being determined
@@ -45,15 +93,26 @@ export default function Statistics() {
 
   return (
     <div className="container mx-auto px-4 py-8 animate-fade-in">
-      <div className="flex items-center mb-8">
-        <div className="p-3 bg-gradient-green rounded-xl mr-4 shadow-lg">
-          <BarChart4 className="h-7 w-7 text-white" />
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+        <div className="flex items-center">
+          <div className="p-3 bg-gradient-green rounded-xl mr-4 shadow-lg">
+            <BarChart4 className="h-7 w-7 text-white" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">
+              Attendance Statistics
+            </h1>
+            <p className="text-muted-foreground">Track your attendance performance</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-teal-600 bg-clip-text text-transparent">
-            Attendance Statistics
-          </h1>
-          <p className="text-muted-foreground">Track your attendance performance</p>
+        
+        <div className="flex gap-2">
+          <Button onClick={exportCSV} variant="outline" className="border-green-200 text-green-700 hover:bg-green-50">
+             <Download className="mr-2 h-4 w-4" /> Export CSV
+          </Button>
+          <Button onClick={exportPDF} className="bg-green-600 hover:bg-green-700">
+             <Download className="mr-2 h-4 w-4" /> Export PDF
+          </Button>
         </div>
       </div>
 

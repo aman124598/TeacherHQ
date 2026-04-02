@@ -33,6 +33,20 @@ const nextConfig = {
   transpilePackages: ['firebase', '@firebase/auth', '@firebase/firestore'],
   // Keep pdf-parse server-side only
   serverExternalPackages: ['pdf-parse'],
+  // Add headers for Cross-Origin-Opener-Policy to allow Firebase Popup
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Cross-Origin-Opener-Policy',
+            value: 'same-origin-allow-popups',
+          },
+        ],
+      },
+    ]
+  },
 }
 
 if (userConfig) {

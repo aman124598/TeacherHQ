@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Users, Calendar, CheckSquare, BarChart4, LogOut, ArrowLeft } from "lucide-react"
+import { LayoutDashboard, Users, Calendar, CheckSquare, BarChart4, LogOut, ArrowLeft, Clock } from "lucide-react"
 
 export default function AdminSidebar() {
   const pathname = usePathname()
@@ -12,6 +12,7 @@ export default function AdminSidebar() {
     { href: "/admin/users", label: "Manage Users", icon: Users },
     { href: "/admin/schedule", label: "Schedule Editor", icon: Calendar },
     { href: "/admin/tasks", label: "Tasks & Events", icon: CheckSquare },
+    { href: "/admin/leaves", label: "Leave Approvals", icon: Clock },
     { href: "/admin/stats", label: "Statistics", icon: BarChart4 },
   ]
 
@@ -22,7 +23,7 @@ export default function AdminSidebar() {
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center">
             <span className="text-white font-bold text-lg">A</span>
           </div>
-          <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-blue-600">
+          <span className="text-xl font-bold dark:text-white">
             Admin Panel
           </span>
         </div>

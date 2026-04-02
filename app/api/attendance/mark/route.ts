@@ -19,7 +19,9 @@ export async function POST(request: Request) {
     }
 
     const db = getDb()
-    const currentDate = new Date(timestamp)
+    // Security: Use server time instead of relying on potentially spoofed client timestamp
+    const currentDate = new Date()
+    const serverTimestampStr = currentDate.toISOString()
     const dateStr = currentDate.toISOString().split("T")[0]
     const timeStr = currentDate.toLocaleTimeString('en-US', { hour12: true })
     

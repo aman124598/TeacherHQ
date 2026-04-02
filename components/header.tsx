@@ -5,7 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { LogOut, Menu, Home, Calendar, BarChart, FileText, Bell, Star, Shield, Building2, Users, Settings } from "lucide-react"
+import { LogOut, Menu, Home, Calendar, BarChart, FileText, Bell, Star, Shield, Building2, Users, Settings, Plane, MoreHorizontal } from "lucide-react"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { Badge } from "@/components/ui/badge"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -54,9 +54,13 @@ export default function Header() {
   const photoURL = user?.photoURL
   const userInitial = displayName.charAt(0).toUpperCase()
 
-  const navItems = [
+  const primaryNavItems = [
     { name: "Dashboard", href: "/dashboard", icon: <Home className="h-4 w-4 mr-2" /> },
     { name: "Schedule", href: "/schedule", icon: <Calendar className="h-4 w-4 mr-2" /> },
+    { name: "Leaves", href: "/leaves", icon: <Plane className="h-4 w-4 mr-2" /> },
+  ]
+  
+  const secondaryNavItems = [
     { name: "Statistics", href: "/statistics", icon: <BarChart className="h-4 w-4 mr-2" /> },
     { name: "Important Dates", href: "/important-dates", icon: <Star className="h-4 w-4 mr-2" /> },
     { name: "Short Notes", href: "/notes", icon: <FileText className="h-4 w-4 mr-2" /> },
@@ -64,7 +68,7 @@ export default function Header() {
 
   // Add admin link only for global admins (not org admins)
   if (userData?.role === 'admin') {
-    navItems.push({ name: "Admin", href: "/admin", icon: <Shield className="h-4 w-4 mr-2" /> })
+    primaryNavItems.push({ name: "Admin", href: "/admin", icon: <Shield className="h-4 w-4 mr-2" /> })
   }
 
   if (!isMounted) return null
@@ -101,7 +105,7 @@ export default function Header() {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-2 animate-slide-in-right">
-            {navItems.map((item) => (
+            {primaryNavItems.map((item) => (
               <Link
                 key={item.name}
                 href={item.href}
@@ -113,15 +117,42 @@ export default function Header() {
               >
                 {item.icon}
                 {item.name}
-                {item.name === "Short Notes" && <Badge className="ml-2 bg-green-500 hover:bg-green-600 shadow-sm">New</Badge>}
-                {item.name === "Important Dates" && (
-                  <Badge className="ml-2 bg-yellow-500 hover:bg-yellow-600 shadow-sm">New</Badge>
-                )}
                 {pathname !== item.href && (
                   <span className="absolute inset-0 rounded-lg bg-white/0 group-hover:bg-white/5 transition-all duration-200"></span>
                 )}
               </Link>
             ))}
+
+            {/* "More" Dropdown for secondary items */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className={`text-sm font-medium flex items-center transition-all duration-200 px-4 py-2.5 rounded-lg ${
+                    secondaryNavItems.some(i => pathname === i.href)
+                      ? "text-white bg-white/25 shadow-md"
+                      : "text-white/90 hover:text-white hover:bg-white/15"
+                  }`}
+                >
+                  <MoreHorizontal className="h-4 w-4 mr-2" />
+                  More
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                {secondaryNavItems.map((item) => (
+                  <Link key={item.name} href={item.href}>
+                    <DropdownMenuItem className="cursor-pointer">
+                      {item.icon}
+                      {item.name}
+                      {item.name === "Short Notes" && <Badge className="ml-auto bg-green-500 hover:bg-green-600 shadow-sm text-[10px] px-1.5">New</Badge>}
+                      {item.name === "Important Dates" && (
+                        <Badge className="ml-auto bg-yellow-500 hover:bg-yellow-600 shadow-sm text-[10px] px-1.5">New</Badge>
+                      )}
+                    </DropdownMenuItem>
+                  </Link>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
             
             {/* Organization Menu - for org admins */}
             {isOrgAdmin && (
@@ -216,7 +247,25 @@ export default function Header() {
                     )}
                   </div>
                   <nav className="flex flex-col gap-2 py-4">
-                    {navItems.map((item) => (
+                    {primaryNavItems.map((item) => (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        className={`p-3 rounded-lg flex items-center font-medium transition-all duration-200 ${
+                          pathname === item.href 
+                            ? "bg-gradient-blue text-white shadow-md" 
+                            : "hover:bg-slate-100 dark:hover:bg-slate-800 dark:text-slate-200"
+                        }`}
+                      >
+                        {item.icon}
+                        {item.name}
+                      </Link>
+                    ))}
+
+                    <div className="my-2 border-t dark:border-slate-800"></div>
+                    <p className="px-3 text-xs text-muted-foreground font-medium uppercase">More</p>
+                    
+                    {secondaryNavItems.map((item) => (
                       <Link
                         key={item.name}
                         href={item.href}
