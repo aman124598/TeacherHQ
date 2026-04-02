@@ -11,8 +11,14 @@ try {
   }
 }
 
+// Check if building for Capacitor mobile app
+const isCapacitorBuild = process.env.CAPACITOR_BUILD === 'true';
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Enable static export only for Capacitor mobile app builds
+  // For web (Vercel) deployment, this should be undefined
+  ...(isCapacitorBuild && { output: 'export' }),
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -27,10 +33,9 @@ const nextConfig = {
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
   },
-  // Optimize bundle
-  swcMinify: true,
   // Transpile Firebase for better tree-shaking
   transpilePackages: ['firebase', '@firebase/auth', '@firebase/firestore'],
+<<<<<<< HEAD
   // Keep pdf-parse server-side only
   serverExternalPackages: ['pdf-parse'],
   // Add headers for Cross-Origin-Opener-Policy to allow Firebase Popup
@@ -47,6 +52,10 @@ const nextConfig = {
       },
     ]
   },
+=======
+  // Keep pdf-parse server-side only (not needed for static export)
+  ...(!isCapacitorBuild && { serverExternalPackages: ['pdf-parse'] }),
+>>>>>>> capacitor-mobile-app
 }
 
 if (userConfig) {

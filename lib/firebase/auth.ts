@@ -1,4 +1,4 @@
-import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, User, sendPasswordResetEmail, updateProfile } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, User, sendPasswordResetEmail, updateProfile, signInWithCredential } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { getFirebaseApp } from './config';
 
@@ -64,14 +64,54 @@ export const signUpWithEmail = async (email: string, password: string, displayNa
   }
 };
 
-// Sign in with Google using popup (more reliable in Next.js)
+// Sign in with Google - uses different methods for web vs Capacitor
 export const signInWithGoogle = async () => {
   try {
-    console.log('Starting Google sign-in with popup...'); // DEBUG LOG
+    console.log('Starting Google sign-in...'); // DEBUG LOG
     const auth = getAuthInstance();
     const provider = getGoogleProvider();
     
+    // Check if running in Capacitor (mobile app)
+    const isCapacitor = typeof window !== 'undefined' && !!(window as any).Capacitor;
+    
+    if (isCapacitor) {
+      console.log('Using Capacitor native Google Sign-In...');
+      try {
+        // Dynamically import to avoid breaking web builds
+        const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
+        const nativeResult = await FirebaseAuthentication.signInWithGoogle();
+        
+        if (!nativeResult.credential?.idToken) {
+           return { success: false, error: 'Google Sign-in failed to retrieve a valid authorization token.' };
+        }
+        
+        // Pass the native ID token to the web Firebase JS instance
+        const credential = GoogleAuthProvider.credential(nativeResult.credential.idToken);
+        const userCredential = await signInWithCredential(auth, credential);
+        
+        // Create or update user document in Firestore
+        try {
+          const userDoc = await getDoc(doc(getDbInstance(), 'users', userCredential.user.uid));
+          if (!userDoc.exists()) {
+            await createUserDocument(userCredential.user);
+          } else {
+            await updateUserLastLogin(userCredential.user.uid);
+          }
+        } catch (e) {
+          console.warn('Could not update Firestore user data:', e);
+        }
+        
+        return { success: true, user: userCredential.user };
+      } catch (e: any) {
+        console.error('Native Google Sign in error:', e);
+        return { success: false, error: e.message || 'Mobile Google sign-in failed.' };
+      }
+    }
+    
+    // Use popup for web - works better in browsers
+    console.log('Using popup flow for web...');
     const result = await signInWithPopup(auth, provider);
+    
     console.log('Google sign-in successful:', result.user.email); // DEBUG LOG
     
     // Create or update user document in Firestore
