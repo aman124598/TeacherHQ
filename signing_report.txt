@@ -1,0 +1,44 @@
+
+> Configure project :app
+WARNING: Using flatDir should be avoided because it doesn't support any meta-data formats.
+
+> Configure project :capacitor-cordova-android-plugins
+WARNING: Using flatDir should be avoided because it doesn't support any meta-data formats.
+
+> Task :app:signingReport
+Variant: debug
+Config: debug
+Store: C:\Users\Aman\.android\debug.keystore
+Alias: AndroidDebugKey
+Error: Missing keystore
+----------
+Variant: release
+Config: null
+Store: null
+Alias: null
+----------
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\Aman\.android\debug.keystore
+Alias: AndroidDebugKey
+Error: Missing keystore
+----------
+
+> Task :capacitor-android:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\Aman\.android\debug.keystore
+Alias: AndroidDebugKey
+Error: Missing keystore
+----------
+
+> Task :capacitor-cordova-android-plugins:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\Aman\.android\debug.keystore
+Alias: AndroidDebugKey
+Error: Missing keystore
+----------
+
+BUILD SUCCESSFUL in 2s
+3 actionable tasks: 3 executed

@@ -1,4 +1,4 @@
-package com.teacherattendance.app;
+package com.app.teacherhq;
 
 import com.getcapacitor.BridgeActivity;
 

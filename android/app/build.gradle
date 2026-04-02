@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace = "com.teacherattendance.app"
+    namespace = "com.app.teacherhq"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.teacherattendance.app"
+        applicationId "com.app.teacherhq"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
