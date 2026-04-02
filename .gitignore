@@ -34,3 +34,6 @@ next-env.d.ts
 _api_backup_temp/
 _backup_*/
 _middleware.ts.backup
+
+# mobile secrets
+android/app/google-services.json

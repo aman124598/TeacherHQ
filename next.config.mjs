@@ -35,9 +35,8 @@ const nextConfig = {
   },
   // Transpile Firebase for better tree-shaking
   transpilePackages: ['firebase', '@firebase/auth', '@firebase/firestore'],
-<<<<<<< HEAD
-  // Keep pdf-parse server-side only
-  serverExternalPackages: ['pdf-parse'],
+  // Keep pdf-parse server-side only (not needed for static export)
+  ...(!isCapacitorBuild && { serverExternalPackages: ['pdf-parse'] }),
   // Add headers for Cross-Origin-Opener-Policy to allow Firebase Popup
   async headers() {
     return [
@@ -52,10 +51,6 @@ const nextConfig = {
       },
     ]
   },
-=======
-  // Keep pdf-parse server-side only (not needed for static export)
-  ...(!isCapacitorBuild && { serverExternalPackages: ['pdf-parse'] }),
->>>>>>> capacitor-mobile-app
 }
 
 if (userConfig) {
