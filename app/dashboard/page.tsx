@@ -170,7 +170,7 @@ export default function Dashboard() {
       for (let i = 0; i < 3; i++) {
         const pos = await Geolocation.getCurrentPosition({
           enableHighAccuracy: true,
-          timeout: 5000,
+          timeout: 15000,
           maximumAge: 0,
         });
         samples.push(pos.coords);
