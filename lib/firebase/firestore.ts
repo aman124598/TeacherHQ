@@ -418,12 +418,16 @@ export interface AttendanceEntry {
     distance: number;
   } | null;
   organizationId?: string | null;
+  branchId?: string | null;
+  departmentId?: string | null;
 }
 
 // Mark attendance directly from client (with authenticated user)
 export const markAttendance = async (
   userId: string,
   organizationId: string | null,
+  branchId: string | null = null,
+  departmentId: string | null = null,
   location?: { latitude: number; longitude: number; distance: number } | null
 ) => {
   try {
@@ -440,6 +444,8 @@ export const markAttendance = async (
       status: 'present',
       location: location || null,
       organizationId: organizationId || null,
+      branchId: branchId || null,
+      departmentId: departmentId || null,
     };
 
     // Get or create user attendance document
@@ -473,6 +479,8 @@ export const markAttendance = async (
       await setDoc(attendanceRef, {
         userId,
         organizationId: organizationId || null,
+        branchId: branchId || null,
+        departmentId: departmentId || null,
         records: [attendanceEntry],
         presentDays: 1,
         absentDays: 0,

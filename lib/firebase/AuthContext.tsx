@@ -9,6 +9,8 @@ interface AuthContextType {
   user: User | null;
   userData: UserData | null;
   organization: Organization | null;
+  currentBranch: any | null;
+  currentDepartment: any | null;
   loading: boolean;
   signOut: () => Promise<void>;
   refreshUserData: () => Promise<void>;
@@ -35,6 +37,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [organization, setOrganization] = useState<Organization | null>(null);
+  const [currentBranch, setCurrentBranch] = useState<any | null>(null);
+  const [currentDepartment, setCurrentDepartment] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
   const router = useRouter();
@@ -55,6 +59,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (data.organizationId) {
           const org = await getOrganization(data.organizationId);
           setOrganization(org);
+          
+          if (data.branchId && data.branchId !== 'none') {
+            const { getBranches } = await import('./organizations');
+            const branches = await getBranches(data.organizationId);
+            const branch = branches.find(b => b.id === data.branchId);
+            setCurrentBranch(branch || null);
+            
+            if (data.departmentId && data.departmentId !== 'none') {
+              const { getDepartmentsOnBranch } = await import('./organizations');
+              const departments = await getDepartmentsOnBranch(data.organizationId, data.branchId);
+              const dept = departments.find(d => d.id === data.departmentId);
+              setCurrentDepartment(dept || null);
+            }
+          }
         }
       }
     }
@@ -81,35 +99,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             console.log('User not in Firestore, creating document...');
             const { createUserIfNotExists } = await import('@/lib/firebase/firestore');
             
-            // Sync logic: If they swapped between Google and Email, they have a different UID, 
-            // but we can preserve their organization access by querying email.
-            let orgParams = {};
-            if (firebaseUser.email) {
-              const { collection, query, where, getDocs, getFirestore } = await import('firebase/firestore');
-              const { getFirebaseApp } = await import('./config');
-              const q = query(collection(getFirestore(getFirebaseApp()), 'users'), where('email', '==', firebaseUser.email));
-              const snap = await getDocs(q);
-              
-              if (!snap.empty) {
-                 const existing = snap.docs[0].data();
-                 if (existing.organizationId) {
-                    console.log('Found existing org profile for this email. Syncing...');
-                    orgParams = {
-                      organizationId: existing.organizationId,
-                      organizationRole: existing.organizationRole,
-                      organizationName: existing.organizationName
-                    };
-                 }
-              }
-            }
-
             const newUserData = {
               uid: firebaseUser.uid,
               email: firebaseUser.email,
               displayName: firebaseUser.displayName,
               photoURL: firebaseUser.photoURL,
               role: 'teacher' as const,
-              ...orgParams
+              // Note: We no longer auto-sync organizationId by email to ensure 
+              // clean onboarding for new accounts.
             };
             await createUserIfNotExists(newUserData);
             data = newUserData;
@@ -124,8 +121,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               const org = await getOrganization(data.organizationId);
               setOrganization(org);
               console.log('Organization loaded:', org?.name);
+              
+              // Hierarchical data loading
+              if (data.branchId && data.branchId !== 'none') {
+                 const { getBranches } = await import('./organizations');
+                 const branches = await getBranches(data.organizationId);
+                 const branch = branches.find(b => b.id === data.branchId);
+                 setCurrentBranch(branch || null);
+                 
+                 if (data.departmentId && data.departmentId !== 'none') {
+                    const { getDepartmentsOnBranch } = await import('./organizations');
+                    const depts = await getDepartmentsOnBranch(data.organizationId, data.branchId);
+                    const dept = depts.find(d => d.id === data.departmentId);
+                    setCurrentDepartment(dept || null);
+                 }
+              }
             } catch (orgError) {
-              console.warn('Could not load organization:', orgError);
+              console.warn('Could not load organization components:', orgError);
             }
           }
           
@@ -143,8 +155,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             if (!data?.organizationId && !isJoinPath) {
               console.log('User has no organization, redirecting to onboarding');
               router.push('/onboarding');
-            } else {
-              console.log('Redirecting to dashboard');
+            } else if (data?.organizationId) {
+              console.log('User has organization, redirecting to dashboard');
               router.push('/dashboard');
             }
           } else if (currentPath !== onboardingPath && !data?.organizationId) {
@@ -215,6 +227,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       user, 
       userData, 
       organization,
+      currentBranch,
+      currentDepartment,
       loading, 
       signOut: handleSignOut,
       refreshUserData,

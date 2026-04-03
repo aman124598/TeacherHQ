@@ -31,6 +31,34 @@ export interface Organization {
   };
   createdAt: any;
   updatedAt: any;
+  plan?: string;
+}
+
+export interface Branch {
+  id: string;
+  organizationId: string;
+  name: string;
+  address?: string;
+  location?: {
+    latitude: number;
+    longitude: number;
+  };
+  locationRadius?: number; // in meters, for attendance verification
+  managerId?: string; // ID of the Branch Admin
+  managerName?: string;
+  createdAt: any;
+  updatedAt: any;
+}
+
+export interface Department {
+  id: string;
+  organizationId: string;
+  branchId: string;
+  name: string;
+  hodId?: string; // ID of the HOD
+  hodName?: string;
+  createdAt: any;
+  updatedAt: any;
 }
 
 // Generate a unique invite code
@@ -151,6 +179,20 @@ export const joinOrganization = async (
     if (!org) {
       return { success: false, error: 'Invalid invite code. Please check and try again.' };
     }
+
+    // --- ENFORCE PLAN LIMITS ---
+    const { getPlanDetails } = await import('@/lib/config/plans');
+    const plan = org.plan || 'starter';
+    const limits = getPlanDetails(plan);
+    const currentMemberCount = org.memberCount || 0;
+
+    if (currentMemberCount >= limits.maxMembers) {
+      return { 
+        success: false, 
+        error: `Organization limit reached for ${plan.toUpperCase()} plan (max ${limits.maxMembers} members). Contact admin to upgrade.` 
+      };
+    }
+    // ---------------------------
 
     const db = getDb();
 
@@ -300,5 +342,115 @@ export const userHasOrganization = async (userId: string): Promise<{ hasOrg: boo
   } catch (error) {
     console.error('Error checking user organization:', error);
     return { hasOrg: false };
+  }
+};
+
+// --- Branch Management ---
+
+export const createBranch = async (organizationId: string, data: { name: string; address?: string }) => {
+  try {
+    const db = getDb();
+    const branchRef = doc(collection(db, 'organizations', organizationId, 'branches'));
+    const branch: Branch = {
+      id: branchRef.id,
+      organizationId,
+      name: data.name,
+      address: data.address || '',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
+    await setDoc(branchRef, branch);
+    return { success: true, branch };
+  } catch (error) {
+    console.error('Error creating branch:', error);
+    return { success: false, error };
+  }
+};
+
+export const getBranches = async (organizationId: string): Promise<Branch[]> => {
+  try {
+    const db = getDb();
+    const q = collection(db, 'organizations', organizationId, 'branches');
+    const snap = await getDocs(q);
+    return snap.docs.map(d => d.data() as Branch);
+  } catch (error) {
+    console.error('Error fetching branches:', error);
+    return [];
+  }
+};
+
+export const updateBranch = async (organizationId: string, branchId: string, updates: Partial<Branch>) => {
+  try {
+    const db = getDb();
+    const branchRef = doc(db, 'organizations', organizationId, 'branches', branchId);
+    await updateDoc(branchRef, { ...updates, updatedAt: serverTimestamp() });
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating branch:', error);
+    return { success: false, error };
+  }
+};
+
+// --- Department Management ---
+
+export const createDepartment = async (organizationId: string, branchId: string, data: { name: string }) => {
+  try {
+    const db = getDb();
+    const deptRef = doc(collection(db, 'organizations', organizationId, 'branches', branchId, 'departments'));
+    const department: Department = {
+      id: deptRef.id,
+      organizationId,
+      branchId,
+      name: data.name,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
+    await setDoc(deptRef, department);
+    return { success: true, department };
+  } catch (error) {
+    console.error('Error creating department:', error);
+    return { success: false, error };
+  }
+};
+
+export const getDepartmentsOnBranch = async (organizationId: string, branchId: string): Promise<Department[]> => {
+  try {
+    const db = getDb();
+    const q = collection(db, 'organizations', organizationId, 'branches', branchId, 'departments');
+    const snap = await getDocs(q);
+    return snap.docs.map(d => d.data() as Department);
+  } catch (error) {
+    console.error('Error fetching departments:', error);
+    return [];
+  }
+};
+
+export const getAllDepartmentsForOrg = async (organizationId: string): Promise<Department[]> => {
+  try {
+    const db = getDb();
+    const branches = await getBranches(organizationId);
+    let allDepts: Department[] = [];
+    
+    for (const branch of branches) {
+      const depts = await getDepartmentsOnBranch(organizationId, branch.id);
+      allDepts = [...allDepts, ...depts];
+    }
+    
+    return allDepts;
+  } catch (error) {
+    console.error('Error fetching all departments:', error);
+    return [];
+  }
+};
+
+export const updateDepartment = async (organizationId: string, branchId: string, deptId: string, updates: Partial<Department>) => {
+  try {
+    const db = getDb();
+    const deptRef = doc(db, 'organizations', organizationId, 'branches', branchId, 'departments', deptId);
+    await updateDoc(deptRef, { ...updates, updatedAt: serverTimestamp() });
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating department:', error);
+    return { success: false, error };
   }
 };

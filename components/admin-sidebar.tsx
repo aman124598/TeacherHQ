@@ -9,11 +9,14 @@ export default function AdminSidebar() {
 
   const links = [
     { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/admin/branches", label: "Campus Branches", icon: Building2 },
+    { href: "/admin/departments", label: "Departments", icon: MapPin },
     { href: "/admin/users", label: "Manage Users", icon: Users },
     { href: "/admin/schedule", label: "Schedule Editor", icon: Calendar },
     { href: "/admin/tasks", label: "Tasks & Events", icon: CheckSquare },
     { href: "/admin/leaves", label: "Leave Approvals", icon: Clock },
     { href: "/admin/stats", label: "Statistics", icon: BarChart4 },
+    { href: "/admin/billing", label: "Billing & Plans", icon: Clock },
   ]
 
   return (

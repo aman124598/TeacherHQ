@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react"
 import { getAllUsers, updateUser, deleteUser } from "@/lib/firebase/firestore"
 import { UserData } from "@/lib/firebase/auth"
+import { useAuth } from "@/lib/firebase/AuthContext"
+import { getPlanDetails } from "@/lib/config/plans"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
@@ -11,10 +13,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
-import { Search, Calendar, BarChart2, Pencil, Trash2, Loader2, RefreshCw, UserPlus } from "lucide-react"
+import { Search, Calendar, BarChart2, Pencil, Trash2, Loader2, RefreshCw, UserPlus, Building2, Layers } from "lucide-react"
+import { getBranches, getAllDepartmentsForOrg, Branch, Department } from "@/lib/firebase/organizations"
 import Link from "next/link"
 
 export default function ManageUsersPage() {
+  const { organization } = useAuth()
   const [users, setUsers] = useState<UserData[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -26,19 +30,35 @@ export default function ManageUsersPage() {
     email: "",
     role: "",
     teacherId: "",
-    department: ""
+    department: "",
+    branchId: "",
+    departmentId: ""
   })
+  
+  const [availableBranches, setAvailableBranches] = useState<Branch[]>([])
+  const [availableDepartments, setAvailableDepartments] = useState<Department[]>([])
 
-  const loadUsers = async () => {
+  const loadInitialData = async () => {
     setLoading(true)
-    const allUsers = await getAllUsers()
-    setUsers(allUsers)
+    if (organization?.id) {
+        const [allUsers, branches, depts] = await Promise.all([
+            getAllUsers(),
+            getBranches(organization.id),
+            getAllDepartmentsForOrg(organization.id)
+        ])
+        setUsers(allUsers)
+        setAvailableBranches(branches)
+        setAvailableDepartments(depts)
+    } else {
+        const allUsers = await getAllUsers()
+        setUsers(allUsers)
+    }
     setLoading(false)
   }
 
   useEffect(() => {
-    loadUsers()
-  }, [])
+    loadInitialData()
+  }, [organization?.id])
 
   const filteredUsers = users.filter(user => 
     user.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -53,7 +73,9 @@ export default function ManageUsersPage() {
       email: user.email || "",
       role: user.role || "teacher",
       teacherId: user.teacherId || "",
-      department: user.department || ""
+      department: user.department || "",
+      branchId: user.branchId || "",
+      departmentId: user.departmentId || ""
     })
   }
 
@@ -103,8 +125,28 @@ export default function ManageUsersPage() {
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
             Manage Users
           </h1>
-          <p className="text-muted-foreground mt-1">View and manage teacher schedules and information</p>
+          <div className="flex items-center gap-2 mt-1">
+            <p className="text-muted-foreground italic">
+              Organization: <span className="font-bold text-gray-700 dark:text-gray-300">{organization?.name || "Loading..."}</span>
+            </p>
+            <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 uppercase text-[10px]">
+              {organization?.plan || "starter"}
+            </Badge>
+          </div>
         </div>
+        
+        {/* Usage Progress */}
+        <div className="flex-1 max-w-xs mx-4 hidden lg:block">
+           <div className="flex justify-between text-xs mb-1">
+              <span className="text-muted-foreground italic">Staff Usage</span>
+              <span className="font-bold">{users.length} / {getPlanDetails(organization?.plan).maxMembers === Infinity ? "∞" : getPlanDetails(organization?.plan).maxMembers}</span>
+           </div>
+           <Progress 
+              value={(users.length / getPlanDetails(organization?.plan).maxMembers) * 100} 
+              className={`h-1.5 ${users.length >= getPlanDetails(organization?.plan).maxMembers ? "bg-red-100" : ""}`} 
+           />
+        </div>
+
         <div className="flex items-center gap-2">
           <Button 
             variant="outline" 
@@ -252,7 +294,9 @@ export default function ManageUsersPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="teacher">Teacher</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="admin">Organization Admin</SelectItem>
+                    <SelectItem value="branch_admin">Branch Admin</SelectItem>
+                    <SelectItem value="hod">HOD</SelectItem>
                     <SelectItem value="staff">Staff</SelectItem>
                   </SelectContent>
                 </Select>
@@ -266,13 +310,44 @@ export default function ManageUsersPage() {
                 />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label>Department</Label>
-              <Input
-                value={editForm.department}
-                onChange={(e) => setEditForm({...editForm, department: e.target.value})}
-                className="dark:bg-slate-900"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Campus Branch</Label>
+                <Select 
+                  value={editForm.branchId} 
+                  onValueChange={(val) => setEditForm({...editForm, branchId: val})}
+                >
+                  <SelectTrigger className="dark:bg-slate-900">
+                    <SelectValue placeholder="Select Branch" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None / Central</SelectItem>
+                    {availableBranches.map(b => (
+                      <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Department</Label>
+                <Select 
+                  value={editForm.departmentId} 
+                  onValueChange={(val) => setEditForm({...editForm, departmentId: val})}
+                >
+                  <SelectTrigger className="dark:bg-slate-900">
+                    <SelectValue placeholder="Select Dept" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {availableDepartments
+                      .filter(d => !editForm.branchId || editForm.branchId === 'none' || d.branchId === editForm.branchId)
+                      .map(d => (
+                        <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                      ))
+                    }
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
           <DialogFooter>

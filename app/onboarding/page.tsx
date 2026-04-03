@@ -27,7 +27,7 @@ type OnboardingStep = 'choice' | 'create' | 'join' | 'success'
 
 export default function OnboardingPage() {
   const router = useRouter()
-  const { user, userData, loading } = useAuth()
+  const { user, userData, loading, refreshUserData } = useAuth()
   const [step, setStep] = useState<OnboardingStep>('choice')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState("")
@@ -82,6 +82,7 @@ export default function OnboardingPage() {
           country: orgCountry.trim(),
         }
       )
+      await refreshUserData()
       setSuccessOrg(org)
       setStep('success')
     } catch (err: any) {
@@ -112,6 +113,7 @@ export default function OnboardingPage() {
       )
 
       if (result.success && result.organization) {
+        await refreshUserData()
         setSuccessOrg(result.organization)
         setStep('success')
       } else {

@@ -21,6 +21,7 @@ import {
   CheckCheck,
   Star,
   Plus,
+  GraduationCap
 } from "lucide-react"
 import TodoList from "@/components/todo-list"
 import { calculateDistance } from "@/lib/distance-calculator"
@@ -37,7 +38,7 @@ const TOUR_COMPLETED_KEY = "tourCompleted"
 
 export default function Dashboard() {
   const router = useRouter()
-  const { user, userData, organization, loading } = useAuth()
+  const { user, userData, organization, currentBranch, currentDepartment, loading } = useAuth()
   const [isLocationVerified, setIsLocationVerified] = useState(false)
   const [attendanceMarked, setAttendanceMarked] = useState(false)
   const [currentLocation, setCurrentLocation] = useState<any>(null)
@@ -111,21 +112,22 @@ export default function Dashboard() {
       loadUpcomingEvents()
     }
 
-    // Fetch college location from API
-    const fetchCollegeLocation = async () => {
-      try {
-        const response = await fetch(getApiUrl('/api/config/location'))
-        const data = await response.json()
-        if (data.success) {
-          setCollegeLocation(data.location)
+    // --- Geofence Location Resolution ---
+    // 1. Check currentBranch (Campus-specific)
+    // 2. Check organization (Global school-wide)
+    // 3. Last resort fallback
+    if (userData) {
+        if (currentBranch?.location) {
+            console.log('Using Branch-specific location:', currentBranch.name);
+            setCollegeLocation(currentBranch.location);
+        } else if (organization?.location) {
+            console.log('Using Global Organization location:', organization.name);
+            setCollegeLocation(organization.location);
+        } else {
+            console.log('Using Default geofence coordinates');
+            setCollegeLocation({ latitude: 13.072204074042398, longitude: 77.50754474895987 });
         }
-      } catch (error) {
-        console.error('Error fetching college location:', error)
-        setCollegeLocation({ latitude: 13.072204074042398, longitude: 77.50754474895987 })
-      }
     }
-
-    fetchCollegeLocation()
 
     // Check if user should see the tour (new users only)
     if (user?.uid) {
@@ -136,7 +138,7 @@ export default function Dashboard() {
         setShowTour(true)
       }
     }
-  }, [isDevAccount, user])
+  }, [isDevAccount, user, currentBranch, organization?.location])
 
   // Return greeting based on local time
   const getGreeting = () => {
@@ -242,6 +244,8 @@ export default function Dashboard() {
       const result = await markAttendance(
         user.uid,
         userData?.organizationId || null,
+        userData?.branchId || null,
+        userData?.departmentId || null,
         currentLocation ? {
           latitude: currentLocation.latitude,
           longitude: currentLocation.longitude,
@@ -357,6 +361,21 @@ export default function Dashboard() {
                   <span className="font-semibold text-sm">{attendanceMarked ? "Present" : "Not Marked"}</span>
                 </div>
               </div>
+
+              {(currentBranch || currentDepartment) && (
+                <div className="flex gap-2 mt-4">
+                  {currentBranch && (
+                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-100 flex items-center gap-1 py-1">
+                      <MapPin className="w-3 h-3" /> {currentBranch.name}
+                    </Badge>
+                  )}
+                  {currentDepartment && (
+                    <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-100 flex items-center gap-1 py-1">
+                      <GraduationCap className="w-3 h-3" /> {currentDepartment.name}
+                    </Badge>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
 

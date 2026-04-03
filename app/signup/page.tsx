@@ -60,7 +60,7 @@ export default function SignUpPage() {
     )
     
     if (result.success) {
-      router.push("/dashboard")
+      router.push("/onboarding")
     } else {
       setError(result.error || "Sign up failed")
     }

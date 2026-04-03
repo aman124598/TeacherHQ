@@ -4,14 +4,15 @@ import { useSearchParams } from "next/navigation"
 import { useEffect, useState, Suspense } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { BarChart4, Users, Calendar, TrendingUp, ArrowLeft, RefreshCw, Loader2 } from "lucide-react"
+import { BarChart4, Users, Calendar, TrendingUp, ArrowLeft, RefreshCw, Loader2, Building2, Layers } from "lucide-react"
 import Link from "next/link"
 import { getAttendanceStats, getUserById, getAllUsers, getAllAttendance } from "@/lib/firebase/firestore"
 import { UserData } from "@/lib/firebase/auth"
+import { useAuth } from "@/lib/firebase/AuthContext"
 
 function StatsContent() {
   const searchParams = useSearchParams()
-  const userId = searchParams.get("userId")
+  const { userData, currentBranch, currentDepartment } = useAuth()
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<UserData | null>(null)
   const [stats, setStats] = useState<any>(null)
@@ -30,24 +31,38 @@ function StatsContent() {
         setUser(userData)
         setStats(attendanceData)
       } else {
-        // Load global stats
+        // Load data
         const [allUsers, allAttendance] = await Promise.all([
           getAllUsers(),
           getAllAttendance()
         ])
         
-        // Calculate global statistics
+        // --- Hierarchical Filtering ---
+        let filteredUsers = allUsers;
+        let filteredAttendance = allAttendance;
+
+        if (userData?.organizationRole === 'branch_admin' && userData.branchId) {
+            filteredUsers = allUsers.filter(u => u.branchId === userData.branchId);
+            const branchUserIds = new Set(filteredUsers.map(u => u.uid));
+            filteredAttendance = allAttendance.filter((a: any) => branchUserIds.has(a.userId));
+        } else if (userData?.organizationRole === 'hod' && userData.departmentId) {
+            filteredUsers = allUsers.filter(u => u.departmentId === userData.departmentId);
+            const deptUserIds = new Set(filteredUsers.map(u => u.uid));
+            filteredAttendance = allAttendance.filter((a: any) => deptUserIds.has(a.userId));
+        }
+        
+        // Calculate statistics
         let totalPresent = 0
         let totalAbsent = 0
-        let totalRecords = allAttendance.length
+        let totalRecords = filteredAttendance.length
         
-        allAttendance.forEach((record: any) => {
+        filteredAttendance.forEach((record: any) => {
           totalPresent += record.present || 0
           totalAbsent += record.absent || 0
         })
         
         setGlobalStats({
-          totalUsers: allUsers.length,
+          totalUsers: filteredUsers.length,
           totalRecords,
           totalPresent,
           totalAbsent,
@@ -76,9 +91,24 @@ function StatsContent() {
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-            Global Statistics
+            {userData?.organizationRole === 'admin' ? 'Global Statistics' : 
+             userData?.organizationRole === 'branch_admin' ? 'Branch Statistics' : 
+             'Department Statistics'}
           </h1>
-          <p className="text-muted-foreground mt-1">System-wide attendance overview</p>
+          <div className="flex items-center gap-2 mt-1">
+             <p className="text-muted-foreground italic">Overview for </p>
+             {userData?.organizationRole === 'branch_admin' ? (
+                <div className="flex items-center gap-1 text-xs font-bold text-gray-700 bg-gray-100 px-2 py-0.5 rounded">
+                   <Building2 className="w-3 h-3" /> {currentBranch?.name || "Your Branch"}
+                </div>
+             ) : userData?.organizationRole === 'hod' ? (
+                <div className="flex items-center gap-1 text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded">
+                   <Layers className="w-3 h-3" /> {currentDepartment?.name || "Your Department"}
+                </div>
+             ) : (
+                <span className="text-xs font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded">Institution Wide</span>
+             )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

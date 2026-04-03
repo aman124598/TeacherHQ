@@ -24,10 +24,12 @@ export interface UserData {
   teacherId?: string;
   createdAt?: any;
   lastLoginAt?: any;
-  // Organization fields
+  // Organization & Hierarchy fields
   organizationId?: string;
-  organizationRole?: 'admin' | 'teacher';
+  organizationRole?: 'admin' | 'branch_admin' | 'hod' | 'teacher';
   organizationName?: string;
+  branchId?: string;
+  departmentId?: string;
 }
 
 // Sign in with email and password
