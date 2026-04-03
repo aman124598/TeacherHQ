@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.app.teacherhq',
-  appName: 'Teacher Attendance',
+  appName: 'Teacher HQ',
   webDir: 'out',
   server: {
     // Enable this for live reload during development

@@ -15,8 +15,10 @@
   "dependencies": {
     "@capacitor-firebase/authentication": "^8.2.0",
     "@capacitor/android": "^8.0.0",
+    "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^8.0.0",
     "@capacitor/core": "^8.0.0",
+    "@capacitor/geolocation": "^8.2.0",
     "@capacitor/ios": "^8.0.0",
     "@hookform/resolvers": "^3.9.1",
     "@radix-ui/react-accordion": "^1.2.2",

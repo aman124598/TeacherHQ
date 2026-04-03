@@ -80,12 +80,36 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           if (!data) {
             console.log('User not in Firestore, creating document...');
             const { createUserIfNotExists } = await import('@/lib/firebase/firestore');
+            
+            // Sync logic: If they swapped between Google and Email, they have a different UID, 
+            // but we can preserve their organization access by querying email.
+            let orgParams = {};
+            if (firebaseUser.email) {
+              const { collection, query, where, getDocs, getFirestore } = await import('firebase/firestore');
+              const { getFirebaseApp } = await import('./config');
+              const q = query(collection(getFirestore(getFirebaseApp()), 'users'), where('email', '==', firebaseUser.email));
+              const snap = await getDocs(q);
+              
+              if (!snap.empty) {
+                 const existing = snap.docs[0].data();
+                 if (existing.organizationId) {
+                    console.log('Found existing org profile for this email. Syncing...');
+                    orgParams = {
+                      organizationId: existing.organizationId,
+                      organizationRole: existing.organizationRole,
+                      organizationName: existing.organizationName
+                    };
+                 }
+              }
+            }
+
             const newUserData = {
               uid: firebaseUser.uid,
               email: firebaseUser.email,
               displayName: firebaseUser.displayName,
               photoURL: firebaseUser.photoURL,
               role: 'teacher' as const,
+              ...orgParams
             };
             await createUserIfNotExists(newUserData);
             data = newUserData;

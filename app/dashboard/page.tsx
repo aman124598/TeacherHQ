@@ -1,6 +1,7 @@
 "use client"
 
 import { Badge } from "@/components/ui/badge"
+import { Geolocation } from "@capacitor/geolocation"
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
@@ -152,25 +153,26 @@ export default function Dashboard() {
     setIsVerifyingLocation(true)
     setAttendanceStatus(null)
 
-    if (!navigator.geolocation) {
-      setLocationError("Geolocation is not supported by your browser")
-      setIsVerifyingLocation(false)
-      return
-    }
-
     try {
-      const getPos = () => new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
+      // Check permissions explicitly
+      let permStatus = await Geolocation.checkPermissions();
+      if (permStatus.location !== 'granted') {
+        permStatus = await Geolocation.requestPermissions();
+        if (permStatus.location !== 'granted') {
+          setLocationError("Location permission is required to mark attendance");
+          setIsVerifyingLocation(false);
+          return;
+        }
+      }
+
+      // Anti-Spoofing: Collect 3 samples with 800ms intervals
+      const samples: any[] = [];
+      for (let i = 0; i < 3; i++) {
+        const pos = await Geolocation.getCurrentPosition({
           enableHighAccuracy: true,
           timeout: 5000,
           maximumAge: 0,
-        })
-      });
-
-      // Anti-Spoofing: Collect 3 samples with 800ms intervals
-      const samples: GeolocationCoordinates[] = [];
-      for (let i = 0; i < 3; i++) {
-        const pos = await getPos();
+        });
         samples.push(pos.coords);
         if (i < 2) await new Promise(r => setTimeout(r, 800));
       }
