@@ -31,19 +31,21 @@ function App() {
   const plans = [
     {
       name: 'Starter',
-      price: '$29',
+      price: '₹499',
       period: '/month',
       target: 'Small institutes',
       points: ['Up to 50 staff', 'Attendance + Leave tracking', 'Email support'],
       tone: 'muted',
+      link: 'https://checkout.dodopayments.com/buy/pdt_0Nbssx6RBsjWdjN6pCt20?quantity=1',
     },
     {
       name: 'Growth',
-      price: '$99',
+      price: '₹1,999',
       period: '/month',
       target: 'Growing campuses',
       points: ['Up to 500 staff', 'Advanced analytics', 'Priority support'],
       tone: 'highlight',
+      link: 'https://checkout.dodopayments.com/buy/pdt_0Nbst8gsTLhHEJS9Q4LiT?quantity=1',
     },
     {
       name: 'Enterprise',
@@ -52,21 +54,22 @@ function App() {
       target: 'Multi-campus systems',
       points: ['Unlimited staff', 'SSO + custom workflows', 'Dedicated success manager'],
       tone: 'muted',
+      link: 'mailto:amanraj89969@gmail.com',
     },
   ]
 
   return (
     <div className="landing-root">
       <header className="topbar reveal">
-        <div className="brand">
+        <a href="https://teacherhq.vercel.app" className="brand">
           <span className="brand-dot" />
           <span>TeacherHQ</span>
-        </div>
+        </a>
         <nav className="nav-links">
           <a href="#features">Features</a>
           <a href="#pricing">Pricing</a>
           <a href="#faq">FAQ</a>
-          <button className="btn btn-small">Book Demo</button>
+          <a href="mailto:amanraj89969@gmail.com?subject=TeacherHQ%20Demo%20Request&body=Hi%20Aman,%20I'm%20interested%20in%20a%20demo%20of%20TeacherHQ%20for%20my%20institution.%20Please%20let%20me%20know%20your%20availability." className="btn btn-small">Book Demo</a>
         </nav>
       </header>
 
@@ -81,43 +84,43 @@ function App() {
           and training centers.
         </p>
         <div className="hero-cta">
-          <button className="btn btn-primary">Start Free Trial</button>
-          <button className="btn btn-ghost">View Product Tour</button>
+          <a href="https://teacherhq.vercel.app" className="btn btn-primary">Start Free Trial</a>
+          <a href="https://teacherhq.vercel.app" className="btn btn-ghost">View Product Tour</a>
         </div>
 
         <div className="hero-panel">
           <div className="signal" />
           <div className="hero-metrics">
-            <article>
+            <a href="https://teacherhq.vercel.app">
               <h3>98.4%</h3>
               <p>Attendance capture accuracy</p>
-            </article>
-            <article>
+            </a>
+            <a href="https://teacherhq.vercel.app">
               <h3>63%</h3>
               <p>Faster admin reconciliation</p>
-            </article>
-            <article>
+            </a>
+            <a href="https://teacherhq.vercel.app">
               <h3>24/7</h3>
               <p>Live visibility across departments</p>
-            </article>
+            </a>
           </div>
         </div>
       </section>
 
       <section className="marquee reveal">
-        <div>
+        <a href="https://teacherhq.vercel.app">
           TRUSTED BY ACADEMIC TEAMS • COMPLIANCE-FIRST • ZERO REGISTER CHAOS • REAL-TIME VISIBILITY •
-        </div>
+        </a>
       </section>
 
       <section id="features" className="features reveal">
         <h2>Everything your operations team needs</h2>
         <div className="feature-grid">
           {features.map((feature) => (
-            <article key={feature.title} className="feature-card">
+            <a href="https://teacherhq.vercel.app" key={feature.title} className="feature-card">
               <h3>{feature.title}</h3>
               <p>{feature.copy}</p>
-            </article>
+            </a>
           ))}
         </div>
       </section>
@@ -126,7 +129,7 @@ function App() {
         <h2>Simple pricing. Serious impact.</h2>
         <div className="pricing-grid">
           {plans.map((plan) => (
-            <article key={plan.name} className={`price-card ${plan.tone}`}>
+            <a href={plan.link} key={plan.name} className={`price-card ${plan.tone}`}>
               <h3>{plan.name}</h3>
               <p className="target">{plan.target}</p>
               <p className="price">
@@ -138,8 +141,8 @@ function App() {
                   <li key={point}>{point}</li>
                 ))}
               </ul>
-              <button className="btn btn-full">Choose {plan.name}</button>
-            </article>
+              <div className="btn btn-full">Choose {plan.name}</div>
+            </a>
           ))}
         </div>
       </section>
@@ -147,18 +150,18 @@ function App() {
       <section className="testimonials reveal">
         <h2>What institutions say</h2>
         <div className="testimonial-grid">
-          <article>
+          <a href="https://teacherhq.vercel.app">
             <p>
               "We replaced three disconnected tools. Attendance, tasks, and leaves now run from one clear workflow."
             </p>
-            <span>Director, Northline College</span>
-          </article>
-          <article>
+            <span>Director, SV Institute of Technology</span>
+          </a>
+          <a href="https://teacherhq.vercel.app">
             <p>
               "Faculty adoption was instant. The app is fast, clear, and practical for on-campus realities."
             </p>
-            <span>Academic Admin, Redstone Institute</span>
-          </article>
+            <span>Academic Admin, Modern Public School</span>
+          </a>
         </div>
       </section>
 
@@ -183,7 +186,7 @@ function App() {
       <section className="final-cta reveal">
         <h2>Ready to modernize attendance operations?</h2>
         <p>Launch TeacherHQ and give your institution a faster, cleaner, data-first operating system.</p>
-        <button className="btn btn-primary">Get Started Now</button>
+        <a href="https://teacherhq.vercel.app" className="btn btn-primary">Get Started Now</a>
       </section>
 
       <footer className="footer reveal">
