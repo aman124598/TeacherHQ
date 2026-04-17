@@ -100,20 +100,20 @@ export default function AdminAttendancePage() {
 
       // Flatten records for table display
       const flattened: any[] = []
-      ;(attendanceData as AttendanceRecord[]).forEach((att) => {
-        const user = usersData.find(u => u.uid === att.id)
-        if (att.records && Array.isArray(att.records)) {
-          att.records.forEach((record: any) => {
-            flattened.push({
-              ...record,
-              userId: att.id,
-              userName: user?.displayName || 'Unknown',
-              userEmail: user?.email || '',
-              userPhoto: (user as any)?.photoURL || null,
+        ; (attendanceData as AttendanceRecord[]).forEach((att) => {
+          const user = usersData.find(u => u.uid === att.id)
+          if (att.records && Array.isArray(att.records)) {
+            att.records.forEach((record: any) => {
+              flattened.push({
+                ...record,
+                userId: att.id,
+                userName: user?.displayName || 'Unknown',
+                userEmail: user?.email || '',
+                userPhoto: (user as any)?.photoURL || null,
+              })
             })
-          })
-        }
-      })
+          }
+        })
 
       // Sort by date descending
       flattened.sort((a, b) => {
@@ -138,7 +138,7 @@ export default function AdminAttendancePage() {
   const getFilteredRecords = () => {
     return flattenedRecords.filter(record => {
       // Search filter
-      const matchesSearch = 
+      const matchesSearch =
         record.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         record.userEmail.toLowerCase().includes(searchTerm.toLowerCase())
 

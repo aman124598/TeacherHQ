@@ -60,13 +60,13 @@ export default function SignUpPage() {
       formData.department,
       userType
     )
-    
+
     if (result.success) {
       router.push("/onboarding")
     } else {
       setError(result.error || "Sign up failed")
     }
-    
+
     setIsLoading(false)
   }
 
@@ -75,7 +75,7 @@ export default function SignUpPage() {
     setIsLoading(true)
 
     const result = await signInWithGoogle()
-    
+
     // With redirect flow, the page will redirect to Google
     if (!result.success && result.error) {
       setError(result.error)
@@ -100,7 +100,7 @@ export default function SignUpPage() {
       <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-purple opacity-10 rounded-full blur-3xl"></div>
       <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-teal opacity-10 rounded-full blur-3xl"></div>
       <div className="absolute top-1/2 left-1/4 w-72 h-72 bg-gradient-blue opacity-5 rounded-full blur-3xl"></div>
-      
+
       <Card className="w-full max-w-lg shadow-premium border-0 dark:border dark:border-slate-700 animate-fade-in backdrop-blur-sm bg-white/95 dark:bg-slate-800/95 relative z-10">
         <CardHeader className="space-y-2 pb-4">
           <div className="flex justify-center mb-2">
@@ -123,7 +123,7 @@ export default function SignUpPage() {
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2 space-y-2">
                 <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">
@@ -133,22 +133,20 @@ export default function SignUpPage() {
                   <button
                     type="button"
                     onClick={() => setUserType("teacher")}
-                    className={`h-11 rounded-md border text-sm font-medium transition-all ${
-                      userType === "teacher"
+                    className={`h-11 rounded-md border text-sm font-medium transition-all ${userType === "teacher"
                         ? "border-teal-500 bg-teal-50 text-teal-700 dark:border-teal-400 dark:bg-teal-900/20 dark:text-teal-300"
                         : "border-gray-200 dark:border-slate-600 text-gray-700 dark:text-gray-300"
-                    }`}
+                      }`}
                   >
                     Teacher
                   </button>
                   <button
                     type="button"
                     onClick={() => setUserType("admin")}
-                    className={`h-11 rounded-md border text-sm font-medium transition-all ${
-                      userType === "admin"
+                    className={`h-11 rounded-md border text-sm font-medium transition-all ${userType === "admin"
                         ? "border-purple-500 bg-purple-50 text-purple-700 dark:border-purple-400 dark:bg-purple-900/20 dark:text-purple-300"
                         : "border-gray-200 dark:border-slate-600 text-gray-700 dark:text-gray-300"
-                    }`}
+                      }`}
                   >
                     Admin
                   </button>
@@ -276,10 +274,10 @@ export default function SignUpPage() {
                 </div>
               </div>
             </div>
-            
-            <Button 
-              type="submit" 
-              className="w-full h-11 bg-gradient-blue hover:opacity-90 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 btn-glow text-base mt-2" 
+
+            <Button
+              type="submit"
+              className="w-full h-11 bg-gradient-blue hover:opacity-90 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 btn-glow text-base mt-2"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -302,7 +300,7 @@ export default function SignUpPage() {
             </div>
           </div>
 
-          <Button 
+          <Button
             type="button"
             variant="outline"
             onClick={handleGoogleSignUp}

@@ -157,7 +157,7 @@ export const createOrganization = async (
 export const getOrganization = async (orgId: string): Promise<Organization | null> => {
   const db = getDb();
   const orgDoc = await getDoc(doc(db, 'organizations', orgId));
-  
+
   if (orgDoc.exists()) {
     return orgDoc.data() as Organization;
   }
@@ -201,7 +201,7 @@ export const getOrganizationByInviteCode = async (inviteCode: string): Promise<O
   const db = getDb();
   const q = query(collection(db, 'organizations'), where('inviteCode', '==', inviteCode.toUpperCase()));
   const querySnapshot = await getDocs(q);
-  
+
   if (!querySnapshot.empty) {
     return querySnapshot.docs[0].data() as Organization;
   }
@@ -223,7 +223,7 @@ export const joinOrganization = async (
     }
 
     const org = await getOrganizationByInviteCode(normalizedInviteCode);
-    
+
     if (!org) {
       return { success: false, error: 'Invalid invite code. Please check and try again.' };
     }
@@ -235,9 +235,9 @@ export const joinOrganization = async (
     const currentMemberCount = org.memberCount || 0;
 
     if (currentMemberCount >= limits.maxMembers) {
-      return { 
-        success: false, 
-        error: `Organization limit reached for ${plan.toUpperCase()} plan (max ${limits.maxMembers} members). Contact admin to upgrade.` 
+      return {
+        success: false,
+        error: `Organization limit reached for ${plan.toUpperCase()} plan (max ${limits.maxMembers} members). Contact admin to upgrade.`
       };
     }
     // ---------------------------
@@ -382,7 +382,7 @@ export const getOrganizationMembers = async (orgId: string): Promise<any[]> => {
     const db = getDb();
     const q = query(collection(db, 'users'), where('organizationId', '==', orgId));
     const querySnapshot = await getDocs(q);
-    
+
     return querySnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
@@ -400,7 +400,7 @@ export const removeMemberFromOrganization = async (
 ): Promise<boolean> => {
   try {
     const db = getDb();
-    
+
     // Get org to check current member count
     const org = await getOrganization(orgId);
     if (!org) return false;
@@ -485,7 +485,7 @@ export const userHasOrganization = async (userId: string): Promise<{ hasOrg: boo
   try {
     const db = getDb();
     const userDoc = await getDoc(doc(db, 'users', userId));
-    
+
     if (userDoc.exists()) {
       const data = userDoc.data();
       if (data.organizationId) {
@@ -588,12 +588,12 @@ export const getAllDepartmentsForOrg = async (organizationId: string): Promise<D
     const db = getDb();
     const branches = await getBranches(organizationId);
     let allDepts: Department[] = [];
-    
+
     for (const branch of branches) {
       const depts = await getDepartmentsOnBranch(organizationId, branch.id);
       allDepts = [...allDepts, ...depts];
     }
-    
+
     return allDepts;
   } catch (error) {
     console.error('Error fetching all departments:', error);

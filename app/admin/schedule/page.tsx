@@ -31,7 +31,7 @@ export default function ScheduleManagementPage() {
     loadUsers()
   }, [organization?.id])
 
-  const filteredUsers = users.filter(user => 
+  const filteredUsers = users.filter(user =>
     user.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email?.toLowerCase().includes(searchTerm.toLowerCase())
   )
@@ -47,8 +47,8 @@ export default function ScheduleManagementPage() {
         </div>
         <div className="relative w-full md:w-64">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input 
-            placeholder="Search teachers..." 
+          <Input
+            placeholder="Search teachers..."
             className="pl-8 bg-white dark:bg-slate-800"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}

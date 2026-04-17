@@ -111,7 +111,7 @@ export default function Header() {
     { name: "Schedule", href: "/schedule", icon: <Calendar className="h-4 w-4 mr-2" /> },
     { name: "Leaves", href: "/leaves", icon: <Plane className="h-4 w-4 mr-2" /> },
   ]
-  
+
   const secondaryNavItems = [
     { name: "Statistics", href: "/statistics", icon: <BarChart className="h-4 w-4 mr-2" /> },
     { name: "Important Dates", href: "/important-dates", icon: <Star className="h-4 w-4 mr-2" /> },
@@ -161,11 +161,10 @@ export default function Header() {
               <Link
                 key={item.name}
                 href={item.href}
-                className={`text-sm font-medium flex items-center transition-all duration-200 px-4 py-2.5 rounded-lg relative group ${
-                  pathname === item.href
+                className={`text-sm font-medium flex items-center transition-all duration-200 px-4 py-2.5 rounded-lg relative group ${pathname === item.href
                     ? "text-white bg-white/25 shadow-md"
                     : "text-white/90 hover:text-white hover:bg-white/15"
-                }`}
+                  }`}
               >
                 {item.icon}
                 {item.name}
@@ -180,11 +179,10 @@ export default function Header() {
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
-                  className={`text-sm font-medium flex items-center transition-all duration-200 px-4 py-2.5 rounded-lg ${
-                    secondaryNavItems.some(i => pathname === i.href)
+                  className={`text-sm font-medium flex items-center transition-all duration-200 px-4 py-2.5 rounded-lg ${secondaryNavItems.some(i => pathname === i.href)
                       ? "text-white bg-white/25 shadow-md"
                       : "text-white/90 hover:text-white hover:bg-white/15"
-                  }`}
+                    }`}
                 >
                   <MoreHorizontal className="h-4 w-4 mr-2" />
                   More
@@ -205,18 +203,17 @@ export default function Header() {
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
-            
+
             {/* Organization Menu */}
             {canAccessOrganizationMenu && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
-                    className={`text-sm font-medium flex items-center transition-all duration-200 px-4 py-2.5 rounded-lg ${
-                      pathname.startsWith('/org')
+                    className={`text-sm font-medium flex items-center transition-all duration-200 px-4 py-2.5 rounded-lg ${pathname.startsWith('/org')
                         ? "text-white bg-white/25 shadow-md"
                         : "text-white/90 hover:text-white hover:bg-white/15"
-                    }`}
+                      }`}
                   >
                     <Building2 className="h-4 w-4 mr-2" />
                     Organization
@@ -240,7 +237,7 @@ export default function Header() {
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
-            
+
             <div className="ml-2">
               <ThemeToggle />
             </div>
@@ -282,7 +279,7 @@ export default function Header() {
                 <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
                 <SheetDescription className="sr-only">Access navigation links and your profile</SheetDescription>
                 <div className="flex flex-col h-full">
-                <div className="py-6 border-b dark:border-slate-800">
+                  <div className="py-6 border-b dark:border-slate-800">
                     <Link href="/profile" className="flex items-center gap-3 mb-3 hover:opacity-80 transition-opacity">
                       <Avatar className="h-12 w-12 bg-gradient-blue border-2 border-purple-200 dark:border-purple-700">
                         {photoURL && <AvatarImage src={photoURL} alt={displayName} />}
@@ -314,11 +311,10 @@ export default function Header() {
                       <Link
                         key={item.name}
                         href={item.href}
-                        className={`p-3 rounded-lg flex items-center font-medium transition-all duration-200 ${
-                          pathname === item.href 
-                            ? "bg-gradient-blue text-white shadow-md" 
+                        className={`p-3 rounded-lg flex items-center font-medium transition-all duration-200 ${pathname === item.href
+                            ? "bg-gradient-blue text-white shadow-md"
                             : "hover:bg-slate-100 dark:hover:bg-slate-800 dark:text-slate-200"
-                        }`}
+                          }`}
                       >
                         {item.icon}
                         {item.name}
@@ -327,16 +323,15 @@ export default function Header() {
 
                     <div className="my-2 border-t dark:border-slate-800"></div>
                     <p className="px-3 text-xs text-muted-foreground font-medium uppercase">More</p>
-                    
+
                     {secondaryNavItems.map((item) => (
                       <Link
                         key={item.name}
                         href={item.href}
-                        className={`p-3 rounded-lg flex items-center font-medium transition-all duration-200 ${
-                          pathname === item.href 
-                            ? "bg-gradient-blue text-white shadow-md" 
+                        className={`p-3 rounded-lg flex items-center font-medium transition-all duration-200 ${pathname === item.href
+                            ? "bg-gradient-blue text-white shadow-md"
                             : "hover:bg-slate-100 dark:hover:bg-slate-800 dark:text-slate-200"
-                        }`}
+                          }`}
                       >
                         {item.icon}
                         {item.name}
@@ -348,7 +343,7 @@ export default function Header() {
                         )}
                       </Link>
                     ))}
-                    
+
                     {/* Organization links */}
                     {canAccessOrganizationMenu && (
                       <>
@@ -356,22 +351,20 @@ export default function Header() {
                         <p className="px-3 text-xs text-muted-foreground font-medium uppercase">Organization</p>
                         <Link
                           href="/org/members"
-                          className={`p-3 rounded-lg flex items-center font-medium transition-all duration-200 ${
-                            pathname === "/org/members" 
-                              ? "bg-gradient-blue text-white shadow-md" 
+                          className={`p-3 rounded-lg flex items-center font-medium transition-all duration-200 ${pathname === "/org/members"
+                              ? "bg-gradient-blue text-white shadow-md"
                               : "hover:bg-slate-100 dark:hover:bg-slate-800 dark:text-slate-200"
-                          }`}
+                            }`}
                         >
                           <Users className="h-4 w-4 mr-2" />
                           {isOrgAdmin ? 'Manage Members' : 'Members'}
                         </Link>
                         <Link
                           href="/org/settings"
-                          className={`p-3 rounded-lg flex items-center font-medium transition-all duration-200 ${
-                            pathname === "/org/settings" 
-                              ? "bg-gradient-blue text-white shadow-md" 
+                          className={`p-3 rounded-lg flex items-center font-medium transition-all duration-200 ${pathname === "/org/settings"
+                              ? "bg-gradient-blue text-white shadow-md"
                               : "hover:bg-slate-100 dark:hover:bg-slate-800 dark:text-slate-200"
-                          }`}
+                            }`}
                         >
                           <Settings className="h-4 w-4 mr-2" />
                           {isOrgAdmin ? 'Org Settings' : 'Organization'}

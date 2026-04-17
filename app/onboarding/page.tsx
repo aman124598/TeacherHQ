@@ -9,10 +9,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import { 
-  Building2, 
-  Users, 
-  ArrowRight, 
+import {
+  Building2,
+  Users,
+  ArrowRight,
   ArrowLeft,
   MapPin,
   CheckCircle,
@@ -72,7 +72,7 @@ export default function OnboardingPage() {
         }
       }
     }
-    
+
     if (!loading && user) {
       checkOrg()
     }
@@ -314,79 +314,79 @@ export default function OnboardingPage() {
         {step === 'choice' && (
           <div className="space-y-6 animate-slide-in-right">
             <div className="grid md:grid-cols-2 gap-6">
-            {/* Create Organization Card */}
-            <Card 
-              className="group cursor-pointer hover:shadow-2xl transition-all duration-300 border-2 hover:border-purple-400 dark:bg-slate-800/80 backdrop-blur-sm overflow-hidden"
-              onClick={() => setStep('create')}
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-blue-500/5 group-hover:from-purple-500/10 group-hover:to-blue-500/10 transition-colors"></div>
-              <CardHeader className="relative">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-r from-purple-600 to-blue-600 flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform">
-                  <Building2 className="h-8 w-8 text-white" />
-                </div>
-                <CardTitle className="text-2xl">Create Organization</CardTitle>
-                <CardDescription className="text-base">
-                  Start fresh with your own organization. Perfect for school administrators and team leads.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="relative">
-                <div className="space-y-3">
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <Shield className="h-4 w-4 mr-2 text-purple-500" />
-                    Full admin control
+              {/* Create Organization Card */}
+              <Card
+                className="group cursor-pointer hover:shadow-2xl transition-all duration-300 border-2 hover:border-purple-400 dark:bg-slate-800/80 backdrop-blur-sm overflow-hidden"
+                onClick={() => setStep('create')}
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-blue-500/5 group-hover:from-purple-500/10 group-hover:to-blue-500/10 transition-colors"></div>
+                <CardHeader className="relative">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-r from-purple-600 to-blue-600 flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform">
+                    <Building2 className="h-8 w-8 text-white" />
                   </div>
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <Users className="h-4 w-4 mr-2 text-blue-500" />
-                    Invite unlimited teachers
+                  <CardTitle className="text-2xl">Create Organization</CardTitle>
+                  <CardDescription className="text-base">
+                    Start fresh with your own organization. Perfect for school administrators and team leads.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="relative">
+                  <div className="space-y-3">
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <Shield className="h-4 w-4 mr-2 text-purple-500" />
+                      Full admin control
+                    </div>
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <Users className="h-4 w-4 mr-2 text-blue-500" />
+                      Invite unlimited teachers
+                    </div>
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <ClipboardList className="h-4 w-4 mr-2 text-teal-500" />
+                      Manage attendance & schedules
+                    </div>
                   </div>
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <ClipboardList className="h-4 w-4 mr-2 text-teal-500" />
-                    Manage attendance & schedules
-                  </div>
-                </div>
-                <Button className="w-full mt-6 bg-gradient-to-r from-purple-600 to-blue-600 hover:opacity-90 group-hover:shadow-lg transition-all">
-                  Get Started
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </CardContent>
-            </Card>
+                  <Button className="w-full mt-6 bg-gradient-to-r from-purple-600 to-blue-600 hover:opacity-90 group-hover:shadow-lg transition-all">
+                    Get Started
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </CardContent>
+              </Card>
 
-            {/* Join Organization Card */}
-            <Card 
-              className="group cursor-pointer hover:shadow-2xl transition-all duration-300 border-2 hover:border-teal-400 dark:bg-slate-800/80 backdrop-blur-sm overflow-hidden"
-              onClick={() => setStep('join')}
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-teal-500/5 to-green-500/5 group-hover:from-teal-500/10 group-hover:to-green-500/10 transition-colors"></div>
-              <CardHeader className="relative">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-r from-teal-600 to-green-600 flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform">
-                  <Users className="h-8 w-8 text-white" />
-                </div>
-                <CardTitle className="text-2xl">Join Organization</CardTitle>
-                <CardDescription className="text-base">
-                  Already have an invite code? Join your organization in seconds.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="relative">
-                <div className="space-y-3">
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <Sparkles className="h-4 w-4 mr-2 text-teal-500" />
-                    Quick one-step joining
+              {/* Join Organization Card */}
+              <Card
+                className="group cursor-pointer hover:shadow-2xl transition-all duration-300 border-2 hover:border-teal-400 dark:bg-slate-800/80 backdrop-blur-sm overflow-hidden"
+                onClick={() => setStep('join')}
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-teal-500/5 to-green-500/5 group-hover:from-teal-500/10 group-hover:to-green-500/10 transition-colors"></div>
+                <CardHeader className="relative">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-r from-teal-600 to-green-600 flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform">
+                    <Users className="h-8 w-8 text-white" />
                   </div>
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <MapPin className="h-4 w-4 mr-2 text-green-500" />
-                    Location-based attendance
+                  <CardTitle className="text-2xl">Join Organization</CardTitle>
+                  <CardDescription className="text-base">
+                    Already have an invite code? Join your organization in seconds.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="relative">
+                  <div className="space-y-3">
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <Sparkles className="h-4 w-4 mr-2 text-teal-500" />
+                      Quick one-step joining
+                    </div>
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <MapPin className="h-4 w-4 mr-2 text-green-500" />
+                      Location-based attendance
+                    </div>
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <Globe className="h-4 w-4 mr-2 text-blue-500" />
+                      Access from anywhere
+                    </div>
                   </div>
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <Globe className="h-4 w-4 mr-2 text-blue-500" />
-                    Access from anywhere
-                  </div>
-                </div>
-                <Button variant="outline" className="w-full mt-6 border-2 border-teal-400 text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/20 group-hover:shadow-lg transition-all">
-                  Enter Invite Code
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </CardContent>
-            </Card>
+                  <Button variant="outline" className="w-full mt-6 border-2 border-teal-400 text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/20 group-hover:shadow-lg transition-all">
+                    Enter Invite Code
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </CardContent>
+              </Card>
             </div>
 
             <Card className="dark:bg-slate-800/80 backdrop-blur-sm border-2 border-slate-200/70 dark:border-slate-700/60">

@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  StyleSheet, 
-  Text, 
-  View, 
-  TextInput, 
-  TouchableOpacity, 
-  KeyboardAvoidingView, 
+import {
+  StyleSheet,
+  Text,
+  View,
+  TextInput,
+  TouchableOpacity,
+  KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
   Alert
@@ -31,11 +31,11 @@ export default function App() {
   const isExpoGo = Constants.appOwnership === 'expo';
   const expoOwner = Constants.expoConfig?.owner;
   const expoSlug = Constants.expoConfig?.slug;
-    const proxyProjectName = expoOwner && expoSlug ? `@${expoOwner}/${expoSlug}` : null;
+  const proxyProjectName = expoOwner && expoSlug ? `@${expoOwner}/${expoSlug}` : null;
   const redirectUri = AuthSession.makeRedirectUri({
     scheme: 'teacherhq',
     useProxy: isExpoGo,
-      projectNameForProxy: proxyProjectName || undefined,
+    projectNameForProxy: proxyProjectName || undefined,
   });
   const expectedProjectPrefix = expoExtra.firebaseMessagingSenderId;
 
@@ -131,12 +131,12 @@ export default function App() {
   };
 
   return (
-    <KeyboardAvoidingView 
+    <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
       <StatusBar style="auto" />
-      
+
       <View style={styles.content}>
         <View style={styles.header}>
           <Text style={styles.title}>Teacher HQ</Text>
@@ -168,8 +168,8 @@ export default function App() {
             />
           </View>
 
-          <TouchableOpacity 
-            style={styles.button} 
+          <TouchableOpacity
+            style={styles.button}
             onPress={handleLogin}
             disabled={isLoading}
           >
@@ -189,8 +189,8 @@ export default function App() {
             <View style={styles.line} />
           </View>
 
-          <TouchableOpacity 
-            style={styles.googleButton} 
+          <TouchableOpacity
+            style={styles.googleButton}
             onPress={() => {
               if (isExpoGo && (!expoOwner || !expoSlug)) {
                 Alert.alert('OAuth Setup Required', 'Set expo.owner and expo.slug in app.json before Google sign-in in Expo Go.');
@@ -219,7 +219,7 @@ export default function App() {
               <Text style={styles.googleButtonText}>Continue with Google</Text>
             )}
           </TouchableOpacity>
-          
+
           <TouchableOpacity style={styles.forgotPassword}>
             <Text style={styles.forgotPasswordText}>Forgot password?</Text>
           </TouchableOpacity>

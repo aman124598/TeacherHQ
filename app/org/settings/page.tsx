@@ -11,13 +11,13 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch"
 import Header from "@/components/header"
-import { 
-  Building2, 
-  Settings, 
-  Copy, 
-  RefreshCw, 
-  MapPin, 
-  Clock, 
+import {
+  Building2,
+  Settings,
+  Copy,
+  RefreshCw,
+  MapPin,
+  Clock,
   Save,
   CheckCircle,
   Shield,
@@ -77,7 +77,7 @@ export default function OrgSettingsPage() {
 
   const handleRegenerateCode = async () => {
     if (!organization?.id || !isOrgAdmin) return
-    
+
     setIsSubmitting(true)
     try {
       const newCode = await regenerateInviteCode(organization.id)
@@ -96,7 +96,7 @@ export default function OrgSettingsPage() {
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!organization?.id || !isOrgAdmin) return
-    
+
     setError("")
     setSuccess("")
     setIsSubmitting(true)

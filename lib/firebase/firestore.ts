@@ -1,12 +1,12 @@
-import { 
-  getFirestore, 
-  collection, 
-  doc, 
-  getDoc, 
-  getDocs, 
-  setDoc, 
-  updateDoc, 
-  query, 
+import {
+  getFirestore,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+  updateDoc,
+  query,
   where,
   addDoc,
   deleteDoc,
@@ -112,7 +112,7 @@ export const getTeacherSchedule = async (userId: string): Promise<ScheduleData |
     const db = getDb();
     const docRef = doc(db, 'schedules', userId);
     const docSnap = await getDoc(docRef);
-    
+
     if (docSnap.exists()) {
       return docSnap.data() as ScheduleData;
     }
@@ -189,11 +189,11 @@ export const getAttendanceStats = async (userId: string) => {
     const db = getDb();
     const docRef = doc(db, 'attendance', userId);
     const docSnap = await getDoc(docRef);
-    
+
     if (docSnap.exists()) {
       return docSnap.data();
     }
-    
+
     return {
       present: 0,
       absent: 0,
@@ -340,14 +340,14 @@ export const deleteUser = async (userId: string) => {
     // Delete user document
     const userRef = doc(db, 'users', userId);
     await deleteDoc(userRef);
-    
+
     // Also delete related data
     const scheduleRef = doc(db, 'schedules', userId);
-    await deleteDoc(scheduleRef).catch(() => {});
-    
+    await deleteDoc(scheduleRef).catch(() => { });
+
     const attendanceDocRef = doc(db, 'attendance', userId);
-    await deleteDoc(attendanceDocRef).catch(() => {});
-    
+    await deleteDoc(attendanceDocRef).catch(() => { });
+
     return { success: true };
   } catch (error) {
     console.error('Error deleting user:', error);
@@ -567,7 +567,7 @@ export const getUserAttendanceHistory = async (userId: string) => {
     const db = getDb();
     const docRef = doc(db, 'attendance', userId);
     const docSnap = await getDoc(docRef);
-    
+
     if (docSnap.exists()) {
       const data = docSnap.data();
       return {
@@ -578,7 +578,7 @@ export const getUserAttendanceHistory = async (userId: string) => {
         lastMarked: data.lastMarked,
       };
     }
-    
+
     return {
       presentDays: 0,
       absentDays: 0,
@@ -636,9 +636,9 @@ export const getUserActivityLogs = async (userId: string, limit: number = 50) =>
     const logsRef = collection(db, 'activity_logs');
     const q = query(logsRef, where('userId', '==', userId));
     const snapshot = await getDocs(q);
-    
+
     const logs = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as ActivityLog));
-    
+
     // Sort by timestamp descending and limit
     return logs
       .sort((a, b) => {
@@ -660,9 +660,9 @@ export const getOrganizationActivityLogs = async (organizationId: string, limit:
     const logsRef = collection(db, 'activity_logs');
     const q = query(logsRef, where('organizationId', '==', organizationId));
     const snapshot = await getDocs(q);
-    
+
     const logs = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as ActivityLog));
-    
+
     // Sort by timestamp descending and limit
     return logs
       .sort((a, b) => {
@@ -776,10 +776,10 @@ export const getOrganizationLeaves = async (organizationId: string): Promise<Lea
     const leavesRef = collection(db, 'leaves');
     const q = query(leavesRef, where('organizationId', '==', organizationId));
     const snapshot = await getDocs(q);
-    
+
     // Manual sorting inside array since Firebase needs a composite index if we combine where and orderBy 
     const leaves = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as LeaveData));
-    return leaves.sort((a,b) => {
+    return leaves.sort((a, b) => {
       const timeA = a.appliedAt?.seconds || 0;
       const timeB = b.appliedAt?.seconds || 0;
       return timeB - timeA;

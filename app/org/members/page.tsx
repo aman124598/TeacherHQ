@@ -32,11 +32,11 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import Header from "@/components/header"
-import { 
-  Users, 
-  Search, 
-  MoreVertical, 
-  Shield, 
+import {
+  Users,
+  Search,
+  MoreVertical,
+  Shield,
   ShieldCheck,
   UserMinus,
   Mail,
@@ -46,10 +46,10 @@ import {
 } from "lucide-react"
 import { useAuth } from "@/lib/firebase/AuthContext"
 import { useToast } from "@/hooks/use-toast"
-import { 
-  getOrganizationMembers, 
-  removeMemberFromOrganization, 
-  demoteMemberToTeacher 
+import {
+  getOrganizationMembers,
+  removeMemberFromOrganization,
+  demoteMemberToTeacher
 } from "@/lib/firebase/organizations"
 
 interface Member {
@@ -74,7 +74,7 @@ export default function OrgMembersPage() {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
   const [copied, setCopied] = useState(false)
-  
+
   // Dialog states
   const [memberToRemove, setMemberToRemove] = useState<Member | null>(null)
   const [memberToDemote, setMemberToDemote] = useState<Member | null>(null)
@@ -90,7 +90,7 @@ export default function OrgMembersPage() {
       const query = searchQuery.toLowerCase()
       setFilteredMembers(
         members.filter(
-          m => 
+          m =>
             m.displayName?.toLowerCase().includes(query) ||
             m.email?.toLowerCase().includes(query)
         )
@@ -102,7 +102,7 @@ export default function OrgMembersPage() {
 
   const loadMembers = async () => {
     if (!organization?.id) return
-    
+
     setIsLoading(true)
     try {
       const membersList = await getOrganizationMembers(organization.id)
@@ -117,7 +117,7 @@ export default function OrgMembersPage() {
 
   const handleRemoveMember = async () => {
     if (!memberToRemove || !organization?.id) return
-    
+
     try {
       await removeMemberFromOrganization(organization.id, memberToRemove.id)
       setSuccess(`${memberToRemove.displayName || memberToRemove.email} has been removed`)
@@ -161,8 +161,8 @@ export default function OrgMembersPage() {
 
   const formatDate = (timestamp: any) => {
     if (!timestamp) return "N/A"
-    const date = timestamp.seconds 
-      ? new Date(timestamp.seconds * 1000) 
+    const date = timestamp.seconds
+      ? new Date(timestamp.seconds * 1000)
       : new Date(timestamp)
     return date.toLocaleDateString()
   }
@@ -318,10 +318,10 @@ export default function OrgMembersPage() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge 
+                          <Badge
                             variant={member.organizationRole === 'admin' ? 'default' : 'secondary'}
-                            className={member.organizationRole === 'admin' 
-                              ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400' 
+                            className={member.organizationRole === 'admin'
+                              ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400'
                               : ''
                             }
                           >
@@ -344,28 +344,28 @@ export default function OrgMembersPage() {
                         {isOrgAdmin && (
                           <TableCell>
                             {member.id !== user?.uid && (
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm">
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                {member.organizationRole === 'admin' && member.id !== organization?.adminId && (
-                                  <DropdownMenuItem onClick={() => setMemberToDemote(member)}>
-                                    <Users className="h-4 w-4 mr-2" />
-                                    Make Teacher
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="sm">
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  {member.organizationRole === 'admin' && member.id !== organization?.adminId && (
+                                    <DropdownMenuItem onClick={() => setMemberToDemote(member)}>
+                                      <Users className="h-4 w-4 mr-2" />
+                                      Make Teacher
+                                    </DropdownMenuItem>
+                                  )}
+                                  <DropdownMenuItem
+                                    onClick={() => setMemberToRemove(member)}
+                                    className="text-red-600 dark:text-red-400"
+                                  >
+                                    <UserMinus className="h-4 w-4 mr-2" />
+                                    Remove
                                   </DropdownMenuItem>
-                                )}
-                                <DropdownMenuItem 
-                                  onClick={() => setMemberToRemove(member)}
-                                  className="text-red-600 dark:text-red-400"
-                                >
-                                  <UserMinus className="h-4 w-4 mr-2" />
-                                  Remove
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             )}
                           </TableCell>
                         )}
@@ -385,13 +385,13 @@ export default function OrgMembersPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Remove Member</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to remove {memberToRemove?.displayName || memberToRemove?.email} from the organization? 
+              Are you sure you want to remove {memberToRemove?.displayName || memberToRemove?.email} from the organization?
               They will lose access to all organization data.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={handleRemoveMember}
               className="bg-red-600 hover:bg-red-700"
             >
@@ -407,7 +407,7 @@ export default function OrgMembersPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Change Role to Teacher</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to change {memberToDemote?.displayName || memberToDemote?.email} to teacher? 
+              Are you sure you want to change {memberToDemote?.displayName || memberToDemote?.email} to teacher?
               They will lose organization admin permissions.
             </AlertDialogDescription>
           </AlertDialogHeader>
