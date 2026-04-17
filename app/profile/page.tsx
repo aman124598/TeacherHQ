@@ -156,7 +156,8 @@ export default function ProfilePage() {
   const handleLeaveOrganization = async () => {
     if (!user?.uid || !organization?.id) return
 
-    if (userData?.organizationRole === "admin") {
+    const isOrgAdmin = userData?.organizationRole === "admin" || organization?.adminId === user?.uid
+    if (isOrgAdmin) {
       setSaveMessage({
         type: "error",
         text: "Organization admins cannot leave directly. Transfer or remove admin access first.",
@@ -214,6 +215,8 @@ export default function ProfilePage() {
   const photoURL = user?.photoURL
   const userInitial = displayName.charAt(0).toUpperCase()
   const attendancePercentage = calculateAttendancePercentage()
+  const isOrgAdmin = userData?.organizationRole === "admin" || organization?.adminId === user?.uid
+  const canLeaveOrganization = !!organization && !isOrgAdmin
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-purple-50 dark:from-slate-900 dark:to-slate-800">
@@ -415,7 +418,7 @@ export default function ProfilePage() {
                       {userData?.role || "Teacher"}
                     </p>
                   </div>
-                  {organization && userData?.organizationRole === "teacher" && (
+                  {canLeaveOrganization && (
                     <div className="pt-2">
                       <Button
                         variant="destructive"
