@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { getAllTeachers, getAllUsers, getAllTasks, TaskData } from "@/lib/firebase/firestore"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Users, Calendar, CheckSquare, Clock, ArrowRight, BarChart4, TrendingUp, Zap, AlertCircle, Building2, Layers } from "lucide-react"
+import { Users, Calendar, CheckSquare, Clock, ArrowRight, BarChart4, TrendingUp, Zap, AlertCircle, Building2, Layers, CheckCircle2 } from "lucide-react"
 import { useAuth } from "@/lib/firebase/AuthContext"
 import { getPlanDetails } from "@/lib/config/plans"
 import { Progress } from "@/components/ui/progress"
@@ -28,10 +28,15 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     async function loadStats() {
+      if (!organization?.id) {
+        setLoading(false)
+        return
+      }
+
       const [users, teachers, tasks] = await Promise.all([
-        getAllUsers(),
-        getAllTeachers(),
-        getAllTasks()
+        getAllUsers(organization.id),
+        getAllTeachers(organization.id),
+        getAllTasks(organization.id)
       ])
       
       // --- Hierarchical Filtering ---
@@ -66,7 +71,7 @@ export default function AdminDashboard() {
       setLoading(false)
     }
     loadStats()
-  }, [userData?.organizationRole, userData?.branchId, userData?.departmentId])
+  }, [organization?.id, userData?.organizationRole, userData?.branchId, userData?.departmentId])
 
   const statCards = [
     {

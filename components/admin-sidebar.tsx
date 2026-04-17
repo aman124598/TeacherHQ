@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Users, Calendar, CheckSquare, BarChart4, LogOut, ArrowLeft, Clock } from "lucide-react"
+import { LayoutDashboard, Users, Calendar, CheckSquare, BarChart4, LogOut, ArrowLeft, Clock, Building2, MapPin } from "lucide-react"
 
 export default function AdminSidebar() {
   const pathname = usePathname()

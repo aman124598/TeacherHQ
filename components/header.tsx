@@ -2,14 +2,26 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { LogOut, Menu, Home, Calendar, BarChart, FileText, Bell, Star, Shield, Building2, Users, Settings, Plane, MoreHorizontal } from "lucide-react"
+import { LogOut, Menu, Home, Calendar, BarChart, FileText, Bell, Star, Shield, Building2, Users, Settings, Plane, MoreHorizontal, UserMinus, Loader2 } from "lucide-react"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { Badge } from "@/components/ui/badge"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { useAuth } from "@/lib/firebase/AuthContext"
+import { removeMemberFromOrganization } from "@/lib/firebase/organizations"
+import { useToast } from "@/hooks/use-toast"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,12 +32,18 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 export default function Header() {
+  const router = useRouter()
   const pathname = usePathname()
-  const { user, userData, organization, signOut } = useAuth()
+  const { user, userData, organization, signOut, refreshUserData } = useAuth()
+  const { toast } = useToast()
   const [currentTime, setCurrentTime] = useState(new Date())
   const [isMounted, setIsMounted] = useState(false)
+  const [showLeaveDialog, setShowLeaveDialog] = useState(false)
+  const [isLeavingOrg, setIsLeavingOrg] = useState(false)
 
   const isOrgAdmin = userData?.organizationRole === 'admin'
+  const canAccessOrganizationMenu = !!organization?.id
+  const canLeaveOrganization = !!organization?.id && userData?.organizationRole === 'teacher'
 
   useEffect(() => {
     setIsMounted(true)
@@ -47,6 +65,40 @@ export default function Header() {
 
   const handleLogout = async () => {
     await signOut()
+  }
+
+  const handleLeaveOrganization = async () => {
+    if (!user?.uid || !organization?.id || !canLeaveOrganization) return
+
+    setIsLeavingOrg(true)
+    try {
+      const success = await removeMemberFromOrganization(organization.id, user.uid)
+      if (!success) {
+        toast({
+          title: 'Unable to leave organization',
+          description: 'Please try again.',
+          variant: 'destructive',
+        })
+        return
+      }
+
+      await refreshUserData()
+      toast({
+        title: 'Left organization',
+        description: 'You can now join another organization using an invite code.',
+      })
+      setShowLeaveDialog(false)
+      router.push('/onboarding')
+    } catch (error) {
+      console.error('Error leaving organization:', error)
+      toast({
+        title: 'Unable to leave organization',
+        description: 'Please try again.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsLeavingOrg(false)
+    }
   }
 
   // Get display name from Firebase user or userData
@@ -154,8 +206,8 @@ export default function Header() {
               </DropdownMenuContent>
             </DropdownMenu>
             
-            {/* Organization Menu - for org admins */}
-            {isOrgAdmin && (
+            {/* Organization Menu */}
+            {canAccessOrganizationMenu && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -176,13 +228,13 @@ export default function Header() {
                   <Link href="/org/members">
                     <DropdownMenuItem className="cursor-pointer">
                       <Users className="h-4 w-4 mr-2" />
-                      Manage Members
+                      {isOrgAdmin ? 'Manage Members' : 'Members'}
                     </DropdownMenuItem>
                   </Link>
                   <Link href="/org/settings">
                     <DropdownMenuItem className="cursor-pointer">
                       <Settings className="h-4 w-4 mr-2" />
-                      Settings
+                      {isOrgAdmin ? 'Settings' : 'Organization'}
                     </DropdownMenuItem>
                   </Link>
                 </DropdownMenuContent>
@@ -192,6 +244,17 @@ export default function Header() {
             <div className="ml-2">
               <ThemeToggle />
             </div>
+            {canLeaveOrganization && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowLeaveDialog(true)}
+                className="bg-red-500/15 hover:bg-red-500/25 text-white border-red-300/40 hover:border-red-300/70 font-medium shadow-md hover:shadow-lg transition-all duration-200 ml-2"
+              >
+                <UserMinus className="h-4 w-4 mr-2" />
+                Leave Org
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
@@ -286,8 +349,8 @@ export default function Header() {
                       </Link>
                     ))}
                     
-                    {/* Organization links for admins */}
-                    {isOrgAdmin && (
+                    {/* Organization links */}
+                    {canAccessOrganizationMenu && (
                       <>
                         <div className="my-2 border-t dark:border-slate-800"></div>
                         <p className="px-3 text-xs text-muted-foreground font-medium uppercase">Organization</p>
@@ -300,7 +363,7 @@ export default function Header() {
                           }`}
                         >
                           <Users className="h-4 w-4 mr-2" />
-                          Manage Members
+                          {isOrgAdmin ? 'Manage Members' : 'Members'}
                         </Link>
                         <Link
                           href="/org/settings"
@@ -311,8 +374,22 @@ export default function Header() {
                           }`}
                         >
                           <Settings className="h-4 w-4 mr-2" />
-                          Org Settings
+                          {isOrgAdmin ? 'Org Settings' : 'Organization'}
                         </Link>
+                      </>
+                    )}
+
+                    {canLeaveOrganization && (
+                      <>
+                        <div className="my-2 border-t dark:border-slate-800"></div>
+                        <Button
+                          onClick={() => setShowLeaveDialog(true)}
+                          variant="ghost"
+                          className="w-full justify-start p-3 rounded-lg font-medium text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20"
+                        >
+                          <UserMinus className="h-4 w-4 mr-2" />
+                          Leave Organization
+                        </Button>
                       </>
                     )}
                   </nav>
@@ -328,6 +405,34 @@ export default function Header() {
           </div>
         </div>
       </div>
+
+      <AlertDialog open={showLeaveDialog} onOpenChange={setShowLeaveDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Leave Organization?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You will lose access to your current organization until you join again using an invite code.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isLeavingOrg}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleLeaveOrganization}
+              disabled={isLeavingOrg}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isLeavingOrg ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Leaving...
+                </>
+              ) : (
+                'Leave Organization'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </header>
   )
 }

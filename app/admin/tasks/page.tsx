@@ -12,9 +12,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { createTask, getAllTasks, updateTask, deleteTask, getAllTeachers, TaskData } from "@/lib/firebase/firestore"
 import { UserData } from "@/lib/firebase/auth"
+import { useAuth } from "@/lib/firebase/AuthContext"
 import { CheckSquare, Plus, Calendar as CalendarIcon, Trash2, Pencil, Loader2, RefreshCw, Bell, Clock, CheckCircle2 } from "lucide-react"
 
 export default function AdminTasksPage() {
+  const { organization } = useAuth()
   const [loading, setLoading] = useState(false)
   const [tasksLoading, setTasksLoading] = useState(true)
   const [tasks, setTasks] = useState<TaskData[]>([])
@@ -33,9 +35,17 @@ export default function AdminTasksPage() {
 
   const loadData = async () => {
     setTasksLoading(true)
+
+    if (!organization?.id) {
+      setTasks([])
+      setTeachers([])
+      setTasksLoading(false)
+      return
+    }
+
     const [allTasks, allTeachers] = await Promise.all([
-      getAllTasks(),
-      getAllTeachers()
+      getAllTasks(organization.id),
+      getAllTeachers(organization.id)
     ])
     setTasks(allTasks)
     setTeachers(allTeachers)
@@ -44,7 +54,7 @@ export default function AdminTasksPage() {
 
   useEffect(() => {
     loadData()
-  }, [])
+  }, [organization?.id])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -53,6 +63,7 @@ export default function AdminTasksPage() {
     try {
       await createTask({
         ...task,
+        organizationId: organization?.id,
         dueDate: task.dueDate ? new Date(task.dueDate) : null,
         type: task.type as any,
         status: 'pending'

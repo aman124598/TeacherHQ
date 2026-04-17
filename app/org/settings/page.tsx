@@ -25,16 +25,19 @@ import {
   ArrowLeft
 } from "lucide-react"
 import { useAuth } from "@/lib/firebase/AuthContext"
-import { updateOrganization, regenerateInviteCode, getOrganizationMembers } from "@/lib/firebase/organizations"
+import { useToast } from "@/hooks/use-toast"
+import { updateOrganization, regenerateInviteCode } from "@/lib/firebase/organizations"
 
 export default function OrgSettingsPage() {
   const router = useRouter()
   const { user, userData, organization, loading, refreshUserData } = useAuth()
+  const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
   const [copied, setCopied] = useState(false)
   const [memberCount, setMemberCount] = useState(0)
+  const isOrgAdmin = userData?.organizationRole === 'admin'
 
   // Form states
   const [orgName, setOrgName] = useState("")
@@ -73,7 +76,7 @@ export default function OrgSettingsPage() {
   }
 
   const handleRegenerateCode = async () => {
-    if (!organization?.id) return
+    if (!organization?.id || !isOrgAdmin) return
     
     setIsSubmitting(true)
     try {
@@ -92,7 +95,7 @@ export default function OrgSettingsPage() {
 
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!organization?.id) return
+    if (!organization?.id || !isOrgAdmin) return
     
     setError("")
     setSuccess("")
@@ -141,8 +144,7 @@ export default function OrgSettingsPage() {
     )
   }
 
-  // Check if user is admin
-  if (userData?.organizationRole !== 'admin') {
+  if (!organization?.id) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
         <Header />
@@ -150,13 +152,12 @@ export default function OrgSettingsPage() {
           <Card className="max-w-md mx-auto">
             <CardContent className="pt-6 text-center">
               <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
+              <h2 className="text-xl font-semibold mb-2">No Organization Found</h2>
               <p className="text-muted-foreground mb-4">
-                Only organization admins can access these settings.
+                Join an organization to view settings.
               </p>
-              <Button onClick={() => router.push('/dashboard')}>
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Dashboard
+              <Button onClick={() => router.push('/onboarding')} variant="outline">
+                Join Organization
               </Button>
             </CardContent>
           </Card>
@@ -178,7 +179,9 @@ export default function OrgSettingsPage() {
             <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
               Organization Settings
             </h1>
-            <p className="text-muted-foreground">Manage your organization configuration</p>
+            <p className="text-muted-foreground">
+              {isOrgAdmin ? 'Manage your organization configuration' : 'View your organization configuration'}
+            </p>
           </div>
         </div>
 
@@ -194,6 +197,13 @@ export default function OrgSettingsPage() {
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
+        {!isOrgAdmin && (
+          <Alert className="mb-6 bg-blue-50 border-blue-200 text-blue-800 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-300">
+            <AlertDescription>
+              You have read-only access. Only organization admins can update settings.
+            </AlertDescription>
+          </Alert>
+        )}
 
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Invite Code Card */}
@@ -201,10 +211,10 @@ export default function OrgSettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="h-5 w-5 text-purple-600" />
-                Invite Teachers
+                {isOrgAdmin ? 'Invite Teachers' : 'Organization Invite Code'}
               </CardTitle>
               <CardDescription>
-                Share this code with teachers to join your organization
+                {isOrgAdmin ? 'Share this code with teachers to join your organization' : 'Your organization invite code'}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -234,7 +244,7 @@ export default function OrgSettingsPage() {
                 <Button
                   variant="outline"
                   onClick={handleRegenerateCode}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || !isOrgAdmin}
                 >
                   <RefreshCw className={`h-4 w-4 ${isSubmitting ? 'animate-spin' : ''}`} />
                 </Button>
@@ -274,6 +284,7 @@ export default function OrgSettingsPage() {
                         value={orgName}
                         onChange={(e) => setOrgName(e.target.value)}
                         placeholder="Enter organization name"
+                        disabled={!isOrgAdmin}
                       />
                     </div>
 
@@ -284,6 +295,7 @@ export default function OrgSettingsPage() {
                         value={orgAddress}
                         onChange={(e) => setOrgAddress(e.target.value)}
                         placeholder="Street address"
+                        disabled={!isOrgAdmin}
                       />
                     </div>
 
@@ -295,6 +307,7 @@ export default function OrgSettingsPage() {
                           value={orgCity}
                           onChange={(e) => setOrgCity(e.target.value)}
                           placeholder="City"
+                          disabled={!isOrgAdmin}
                         />
                       </div>
                       <div className="space-y-2">
@@ -304,6 +317,7 @@ export default function OrgSettingsPage() {
                           value={orgState}
                           onChange={(e) => setOrgState(e.target.value)}
                           placeholder="State"
+                          disabled={!isOrgAdmin}
                         />
                       </div>
                     </div>
@@ -315,6 +329,7 @@ export default function OrgSettingsPage() {
                         value={orgCountry}
                         onChange={(e) => setOrgCountry(e.target.value)}
                         placeholder="Country"
+                        disabled={!isOrgAdmin}
                       />
                     </div>
                   </TabsContent>
@@ -333,6 +348,7 @@ export default function OrgSettingsPage() {
                         id="attendanceEnabled"
                         checked={attendanceEnabled}
                         onCheckedChange={setAttendanceEnabled}
+                        disabled={!isOrgAdmin}
                       />
                     </div>
 
@@ -349,6 +365,7 @@ export default function OrgSettingsPage() {
                         id="locationVerification"
                         checked={locationVerification}
                         onCheckedChange={setLocationVerification}
+                        disabled={!isOrgAdmin}
                       />
                     </div>
 
@@ -365,6 +382,7 @@ export default function OrgSettingsPage() {
                         min={100}
                         max={5000}
                         step={100}
+                        disabled={!isOrgAdmin}
                       />
                       <p className="text-sm text-muted-foreground">
                         Teachers must be within this distance to mark attendance
@@ -382,6 +400,7 @@ export default function OrgSettingsPage() {
                           type="time"
                           value={workingHoursStart}
                           onChange={(e) => setWorkingHoursStart(e.target.value)}
+                          disabled={!isOrgAdmin}
                         />
                       </div>
                       <div className="space-y-2">
@@ -394,29 +413,37 @@ export default function OrgSettingsPage() {
                           type="time"
                           value={workingHoursEnd}
                           onChange={(e) => setWorkingHoursEnd(e.target.value)}
+                          disabled={!isOrgAdmin}
                         />
                       </div>
                     </div>
                   </TabsContent>
 
                   <div className="mt-6 pt-6 border-t dark:border-slate-700">
-                    <Button
-                      type="submit"
-                      className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:opacity-90"
-                      disabled={isSubmitting}
-                    >
-                      {isSubmitting ? (
-                        <div className="flex items-center">
-                          <div className="animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>
-                          Saving...
-                        </div>
-                      ) : (
-                        <>
-                          <Save className="h-4 w-4 mr-2" />
-                          Save Changes
-                        </>
-                      )}
-                    </Button>
+                    {isOrgAdmin ? (
+                      <Button
+                        type="submit"
+                        className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:opacity-90"
+                        disabled={isSubmitting}
+                      >
+                        {isSubmitting ? (
+                          <div className="flex items-center">
+                            <div className="animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>
+                            Saving...
+                          </div>
+                        ) : (
+                          <>
+                            <Save className="h-4 w-4 mr-2" />
+                            Save Changes
+                          </>
+                        )}
+                      </Button>
+                    ) : (
+                      <Button type="button" variant="outline" className="w-full" onClick={() => router.push('/dashboard')}>
+                        <ArrowLeft className="h-4 w-4 mr-2" />
+                        Back to Dashboard
+                      </Button>
+                    )}
                   </div>
                 </form>
               </CardContent>

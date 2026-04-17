@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { getAllUsers } from "@/lib/firebase/firestore"
 import { UserData } from "@/lib/firebase/auth"
+import { useAuth } from "@/lib/firebase/AuthContext"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,18 +11,25 @@ import { Calendar, Search, ArrowRight, User } from "lucide-react"
 import Link from "next/link"
 
 export default function ScheduleManagementPage() {
+  const { organization } = useAuth()
   const [users, setUsers] = useState<UserData[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
 
   useEffect(() => {
     async function loadUsers() {
-      const allUsers = await getAllUsers()
+      if (!organization?.id) {
+        setUsers([])
+        setLoading(false)
+        return
+      }
+
+      const allUsers = await getAllUsers(organization.id)
       setUsers(allUsers)
       setLoading(false)
     }
     loadUsers()
-  }, [])
+  }, [organization?.id])
 
   const filteredUsers = users.filter(user => 
     user.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) ||

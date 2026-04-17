@@ -34,6 +34,16 @@ export interface Organization {
   plan?: string;
 }
 
+export interface MarketplaceOrganization {
+  id: string;
+  name: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  memberCount: number;
+  plan?: string;
+}
+
 export interface Branch {
   id: string;
   organizationId: string;
@@ -154,6 +164,38 @@ export const getOrganization = async (orgId: string): Promise<Organization | nul
   return null;
 };
 
+// Get organizations for onboarding marketplace
+export const getMarketplaceOrganizations = async (): Promise<MarketplaceOrganization[]> => {
+  try {
+    const db = getDb();
+    const querySnapshot = await getDocs(collection(db, 'organizations'));
+
+    return querySnapshot.docs
+      .map((snapshot) => {
+        const data = snapshot.data() as Organization;
+        return {
+          id: data.id || snapshot.id,
+          name: data.name,
+          city: data.city,
+          state: data.state,
+          country: data.country,
+          memberCount: data.memberCount || 0,
+          plan: data.plan || 'starter',
+        };
+      })
+      .filter((org) => !!org.name)
+      .sort((a, b) => {
+        if (b.memberCount !== a.memberCount) {
+          return b.memberCount - a.memberCount;
+        }
+        return a.name.localeCompare(b.name);
+      });
+  } catch (error) {
+    console.error('Error getting marketplace organizations:', error);
+    return [];
+  }
+};
+
 // Get organization by invite code
 export const getOrganizationByInviteCode = async (inviteCode: string): Promise<Organization | null> => {
   const db = getDb();
@@ -174,7 +216,13 @@ export const joinOrganization = async (
   inviteCode: string
 ): Promise<{ success: boolean; organization?: Organization; error?: string }> => {
   try {
-    const org = await getOrganizationByInviteCode(inviteCode);
+    const normalizedInviteCode = inviteCode.trim().toUpperCase();
+
+    if (!normalizedInviteCode) {
+      return { success: false, error: 'Invite code is required.' };
+    }
+
+    const org = await getOrganizationByInviteCode(normalizedInviteCode);
     
     if (!org) {
       return { success: false, error: 'Invalid invite code. Please check and try again.' };
@@ -202,13 +250,20 @@ export const joinOrganization = async (
       return { success: false, error: 'You are already a member of this organization.' };
     }
 
+    if (userDoc.exists() && userDoc.data().organizationId && userDoc.data().organizationId !== org.id) {
+      return { success: false, error: 'Please leave your current organization before joining a new one.' };
+    }
+
     // Update user with organization details
-    await updateDoc(doc(db, 'users', userId), {
+    await setDoc(doc(db, 'users', userId), {
+      uid: userId,
+      email: userEmail || null,
+      displayName: userName || null,
       organizationId: org.id,
       organizationRole: 'teacher',
       organizationName: org.name,
       updatedAt: serverTimestamp(),
-    });
+    }, { merge: true });
 
     // Increment member count
     await updateDoc(doc(db, 'organizations', org.id), {
@@ -219,6 +274,70 @@ export const joinOrganization = async (
     return { success: true, organization: org };
   } catch (error: any) {
     console.error('Error joining organization:', error);
+    return { success: false, error: 'Failed to join organization. Please try again.' };
+  }
+};
+
+// Join organization directly by organization ID (used by onboarding marketplace)
+export const joinOrganizationById = async (
+  userId: string,
+  userEmail: string,
+  userName: string,
+  organizationId: string
+): Promise<{ success: boolean; organization?: Organization; error?: string }> => {
+  try {
+    const org = await getOrganization(organizationId);
+
+    if (!org) {
+      return { success: false, error: 'Organization not found.' };
+    }
+
+    // --- ENFORCE PLAN LIMITS ---
+    const { getPlanDetails } = await import('@/lib/config/plans');
+    const plan = org.plan || 'starter';
+    const limits = getPlanDetails(plan);
+    const currentMemberCount = org.memberCount || 0;
+
+    if (currentMemberCount >= limits.maxMembers) {
+      return {
+        success: false,
+        error: `Organization limit reached for ${plan.toUpperCase()} plan (max ${limits.maxMembers} members). Contact admin to upgrade.`
+      };
+    }
+    // ---------------------------
+
+    const db = getDb();
+
+    // Check if user is already a member
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    if (userDoc.exists() && userDoc.data().organizationId === org.id) {
+      return { success: false, error: 'You are already a member of this organization.' };
+    }
+
+    if (userDoc.exists() && userDoc.data().organizationId && userDoc.data().organizationId !== org.id) {
+      return { success: false, error: 'Please leave your current organization before joining a new one.' };
+    }
+
+    // Update user with organization details
+    await setDoc(doc(db, 'users', userId), {
+      uid: userId,
+      email: userEmail || null,
+      displayName: userName || null,
+      organizationId: org.id,
+      organizationRole: 'teacher',
+      organizationName: org.name,
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+
+    // Increment member count
+    await updateDoc(doc(db, 'organizations', org.id), {
+      memberCount: (org.memberCount || 1) + 1,
+      updatedAt: serverTimestamp(),
+    });
+
+    return { success: true, organization: org };
+  } catch (error: any) {
+    console.error('Error joining organization by id:', error);
     return { success: false, error: 'Failed to join organization. Please try again.' };
   }
 };
@@ -311,6 +430,20 @@ export const removeMemberFromOrganization = async (
 export const promoteMemberToAdmin = async (orgId: string, userId: string): Promise<boolean> => {
   try {
     const db = getDb();
+
+    // Enforce single-admin-per-organization.
+    const adminQuery = query(
+      collection(db, 'users'),
+      where('organizationId', '==', orgId),
+      where('organizationRole', '==', 'admin')
+    );
+    const adminSnapshot = await getDocs(adminQuery);
+    const existingAdmin = adminSnapshot.docs.find((snapshot) => snapshot.id !== userId);
+
+    if (existingAdmin) {
+      return false;
+    }
+
     await updateDoc(doc(db, 'users', userId), {
       organizationRole: 'admin',
       updatedAt: serverTimestamp(),
@@ -318,6 +451,31 @@ export const promoteMemberToAdmin = async (orgId: string, userId: string): Promi
     return true;
   } catch (error) {
     console.error('Error promoting member:', error);
+    return false;
+  }
+};
+
+// Demote admin member to teacher
+export const demoteMemberToTeacher = async (orgId: string, userId: string): Promise<boolean> => {
+  try {
+    const db = getDb();
+    const org = await getOrganization(orgId);
+
+    if (!org) return false;
+
+    // Prevent demoting the organization owner admin.
+    if (org.adminId === userId) {
+      return false;
+    }
+
+    await updateDoc(doc(db, 'users', userId), {
+      organizationRole: 'teacher',
+      updatedAt: serverTimestamp(),
+    });
+
+    return true;
+  } catch (error) {
+    console.error('Error demoting member:', error);
     return false;
   }
 };

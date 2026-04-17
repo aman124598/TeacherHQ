@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Progress } from "@/components/ui/progress"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
@@ -42,7 +43,7 @@ export default function ManageUsersPage() {
     setLoading(true)
     if (organization?.id) {
         const [allUsers, branches, depts] = await Promise.all([
-            getAllUsers(),
+          getAllUsers(organization.id),
             getBranches(organization.id),
             getAllDepartmentsForOrg(organization.id)
         ])
@@ -50,8 +51,9 @@ export default function ManageUsersPage() {
         setAvailableBranches(branches)
         setAvailableDepartments(depts)
     } else {
-        const allUsers = await getAllUsers()
-        setUsers(allUsers)
+      setUsers([])
+      setAvailableBranches([])
+      setAvailableDepartments([])
     }
     setLoading(false)
   }
@@ -151,7 +153,7 @@ export default function ManageUsersPage() {
           <Button 
             variant="outline" 
             size="icon"
-            onClick={loadUsers}
+            onClick={loadInitialData}
             disabled={loading}
             className="shrink-0"
           >

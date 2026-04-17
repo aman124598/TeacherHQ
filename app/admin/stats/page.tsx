@@ -12,7 +12,7 @@ import { useAuth } from "@/lib/firebase/AuthContext"
 
 function StatsContent() {
   const searchParams = useSearchParams()
-  const { userData, currentBranch, currentDepartment } = useAuth()
+  const { userData, organization, currentBranch, currentDepartment } = useAuth()
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<UserData | null>(null)
   const [stats, setStats] = useState<any>(null)
@@ -23,18 +23,45 @@ function StatsContent() {
       setLoading(true)
       
       if (userId) {
+        if (!organization?.id) {
+          setUser(null)
+          setStats(null)
+          setLoading(false)
+          return
+        }
+
         // Load specific user stats
         const [userData, attendanceData] = await Promise.all([
           getUserById(userId),
           getAttendanceStats(userId)
         ])
+
+        if (userData?.organizationId !== organization.id) {
+          setUser(null)
+          setStats(null)
+          setLoading(false)
+          return
+        }
+
         setUser(userData)
         setStats(attendanceData)
       } else {
+        if (!organization?.id) {
+          setGlobalStats({
+            totalUsers: 0,
+            totalRecords: 0,
+            totalPresent: 0,
+            totalAbsent: 0,
+            attendanceRate: 0,
+          })
+          setLoading(false)
+          return
+        }
+
         // Load data
         const [allUsers, allAttendance] = await Promise.all([
-          getAllUsers(),
-          getAllAttendance()
+          getAllUsers(organization.id),
+          getAllAttendance(organization.id)
         ])
         
         // --- Hierarchical Filtering ---
@@ -75,7 +102,7 @@ function StatsContent() {
       setLoading(false)
     }
     loadData()
-  }, [userId])
+  }, [organization?.id, userId])
 
   if (loading) {
     return (
