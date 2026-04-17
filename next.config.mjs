@@ -28,11 +28,9 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  experimental: {
-    webpackBuildWorker: true,
-    parallelServerBuildTraces: true,
-    parallelServerCompiles: true,
-  },
+  // Keep dev/build runtime stable; these parallel worker flags can cause
+  // intermittent missing chunk files (MODULE_NOT_FOUND in .next/server).
+  experimental: {},
   // Transpile Firebase for better tree-shaking
   transpilePackages: ['firebase', '@firebase/auth', '@firebase/firestore'],
   // Keep pdf-parse server-side only (not needed for static export)
