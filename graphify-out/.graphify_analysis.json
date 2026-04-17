@@ -1,0 +1,312 @@
+{
+  "communities": {
+    "0": [
+      "app_api_attendance_mark_route_ts",
+      "app_api_config_location_route_ts",
+      "app_api_login_route_ts",
+      "app_api_notes_document_id_route_ts",
+      "app_api_notes_document_route_ts",
+      "app_api_notes_generate_route_ts",
+      "app_api_notes_ocr_route_ts",
+      "app_api_schedule_id_route_ts",
+      "app_api_webhooks_dodopayments_route_ts",
+      "route_connecttodatabase",
+      "route_delete",
+      "route_get",
+      "route_getdb",
+      "route_getfirebaseapp",
+      "route_localsummarize",
+      "route_logactivity",
+      "route_post"
+    ],
+    "1": [
+      "app_notes_page_tsx",
+      "page_extracttextfrompdf",
+      "page_fetchdocuments",
+      "page_formatfilesize",
+      "page_generatewithgemini",
+      "page_handledocumentdelete",
+      "page_handledocumentupload",
+      "page_handlefilechange",
+      "page_handlesubmit",
+      "page_if",
+      "page_parsegeminiresponse",
+      "page_processboldtext"
+    ],
+    "2": [
+      "app_admin_attendance_page_tsx",
+      "app_admin_stats_page_tsx",
+      "app_profile_page_tsx",
+      "page_calculateattendancepercentage",
+      "page_formattime",
+      "page_formattimestamp",
+      "page_getfilteredrecords",
+      "page_handleleaveorganization",
+      "page_handlerefresh",
+      "page_handlesaveprofile",
+      "page_loaddata"
+    ],
+    "3": [
+      "app_dashboard_page_tsx",
+      "app_important_dates_page_tsx",
+      "page_getbadgecolor",
+      "page_getgreeting",
+      "page_getlocation",
+      "page_handleattendancesubmit",
+      "page_handletourcomplete",
+      "page_handletourskip",
+      "page_loadevents",
+      "page_loadupcomingevents"
+    ],
+    "4": [
+      "app_admin_page_tsx",
+      "app_admin_tasks_page_tsx",
+      "page_gettypecolor",
+      "page_handleconfirmdelete",
+      "page_handledeleteclick",
+      "page_handleeditclick",
+      "page_handlesaveedit",
+      "page_handlestatustoggle",
+      "page_loadstats"
+    ],
+    "5": [
+      "app_org_members_page_tsx",
+      "app_org_settings_page_tsx",
+      "page_formatdate",
+      "page_handlecopyinvitecode",
+      "page_handledemotemember",
+      "page_handleregeneratecode",
+      "page_handleremovemember",
+      "page_handlesavesettings",
+      "page_loadmembers"
+    ],
+    "6": [
+      "app_onboarding_page_tsx",
+      "page_checkorg",
+      "page_handlecreateorganization",
+      "page_handlejoinorganization",
+      "page_handlemarketplacedirectjoin",
+      "page_handleroleselection",
+      "page_loadmarketplace"
+    ],
+    "7": [
+      "app_admin_departments_page_tsx",
+      "page_handlecreatedept",
+      "page_handleupdatedept",
+      "page_loaddepts",
+      "page_loadinitialdata"
+    ],
+    "8": [
+      "app_admin_leaves_page_tsx",
+      "app_leaves_page_tsx",
+      "page_getstatusbadge",
+      "page_handleupdatestatus",
+      "page_loadleaves"
+    ],
+    "9": [
+      "app_admin_branches_page_tsx",
+      "page_handleaddbranch",
+      "page_handleupdatebranch",
+      "page_loadbranches"
+    ],
+    "10": [
+      "app_signup_page_tsx",
+      "page_handlechange",
+      "page_handlegooglesignup",
+      "page_handlesignup"
+    ],
+    "11": [
+      "app_page_tsx",
+      "page_handleemaillogin",
+      "page_handlegooglelogin"
+    ],
+    "12": [
+      "app_join_code_page_tsx",
+      "page_handlejoin",
+      "page_loadorganization"
+    ],
+    "13": [
+      "app_statistics_page_tsx",
+      "page_exportcsv",
+      "page_exportpdf"
+    ],
+    "14": [
+      "app_layout_tsx",
+      "layout_rootlayout"
+    ],
+    "15": [
+      "app_loading_tsx",
+      "loading_loading"
+    ],
+    "16": [
+      "app_not_found_tsx",
+      "not_found_notfound"
+    ],
+    "17": [
+      "app_admin_layout_tsx",
+      "layout_adminlayout"
+    ],
+    "18": [
+      "app_admin_billing_page_tsx",
+      "page_billingpage"
+    ],
+    "19": [
+      "app_admin_schedule_page_tsx",
+      "page_loadusers"
+    ],
+    "20": [
+      "app_admin_schedule_userid_page_tsx",
+      "page_scheduleeditor"
+    ],
+    "21": [
+      "app_admin_users_page_tsx",
+      "page_manageuserspage"
+    ],
+    "22": [
+      "app_dashboard_layout_tsx",
+      "layout_dashboardlayout"
+    ],
+    "23": [
+      "app_important_dates_layout_tsx",
+      "layout_importantdateslayout"
+    ],
+    "24": [
+      "app_notes_layout_tsx",
+      "layout_noteslayout"
+    ],
+    "25": [
+      "app_schedule_layout_tsx",
+      "layout_schedulelayout"
+    ],
+    "26": [
+      "app_schedule_page_tsx",
+      "page_fetchschedule"
+    ],
+    "27": [
+      "app_statistics_layout_tsx",
+      "layout_statisticslayout"
+    ],
+    "28": [
+      "app_components_ui_dialog_tsx"
+    ],
+    "29": [
+      "app_components_ui_label_tsx"
+    ],
+    "30": [
+      "app_components_ui_tabs_tsx"
+    ],
+    "31": [
+      "app_components_ui_textarea_tsx"
+    ]
+  },
+  "cohesion": {},
+  "god_nodes": [
+    {
+      "id": "route_post",
+      "label": "POST()",
+      "degree": 13
+    },
+    {
+      "id": "page_handlesubmit",
+      "label": "handleSubmit()",
+      "degree": 7
+    },
+    {
+      "id": "route_connecttodatabase",
+      "label": "connectToDatabase()",
+      "degree": 7
+    },
+    {
+      "id": "page_loaddata",
+      "label": "loadData()",
+      "degree": 6
+    },
+    {
+      "id": "route_get",
+      "label": "GET()",
+      "degree": 5
+    },
+    {
+      "id": "route_getfirebaseapp",
+      "label": "getFirebaseApp()",
+      "degree": 3
+    },
+    {
+      "id": "route_getdb",
+      "label": "getDb()",
+      "degree": 3
+    },
+    {
+      "id": "page_extracttextfrompdf",
+      "label": "extractTextFromPDF()",
+      "degree": 3
+    },
+    {
+      "id": "page_loadmembers",
+      "label": "loadMembers()",
+      "degree": 3
+    },
+    {
+      "id": "page_gettypecolor",
+      "label": "getTypeColor()",
+      "degree": 2
+    }
+  ],
+  "surprises": [
+    {
+      "source": "POST()",
+      "target": "extractTextFromPDF()",
+      "source_files": [
+        "app\\api\\webhooks\\dodopayments\\route.ts",
+        "app\\notes\\page.tsx"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; bridges separate communities"
+    },
+    {
+      "source": "handleRefresh()",
+      "target": "loadData()",
+      "source_files": [
+        "app\\admin\\attendance\\page.tsx",
+        "app\\profile\\page.tsx"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "connects across different repos/directories; peripheral node `handleRefresh()` unexpectedly reaches hub `loadData()`"
+    },
+    {
+      "source": "handleSubmit()",
+      "target": "loadData()",
+      "source_files": [
+        "app\\notes\\page.tsx",
+        "app\\profile\\page.tsx"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "connects across different repos/directories; bridges separate communities"
+    },
+    {
+      "source": "POST()",
+      "target": "getFirebaseApp()",
+      "source_files": [
+        "app\\api\\webhooks\\dodopayments\\route.ts",
+        "app\\api\\attendance\\mark\\route.ts"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories"
+    },
+    {
+      "source": "POST()",
+      "target": "logActivity()",
+      "source_files": [
+        "app\\api\\webhooks\\dodopayments\\route.ts",
+        "app\\api\\attendance\\mark\\route.ts"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "connects across different repos/directories; peripheral node `logActivity()` unexpectedly reaches hub `POST()`"
+    }
+  ]
+}

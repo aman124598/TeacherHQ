@@ -5,7 +5,7 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { LogOut, Menu, Home, Calendar, BarChart, FileText, Bell, Star, Shield, Building2, Users, Settings, Plane, MoreHorizontal, UserMinus, Loader2 } from "lucide-react"
+import { LogOut, Menu, Home, Calendar, BarChart, FileText, Bell, Star, Shield, Building2, Users, Settings, Plane, MoreHorizontal, UserMinus, Loader2, User as UserIcon, ChevronDown } from "lucide-react"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { Badge } from "@/components/ui/badge"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -41,17 +41,17 @@ export default function Header() {
   const [showLeaveDialog, setShowLeaveDialog] = useState(false)
   const [isLeavingOrg, setIsLeavingOrg] = useState(false)
 
-  const isOrgAdmin = userData?.organizationRole === 'admin'
+  const isOrgAdmin = userData?.organizationRole === 'admin' || organization?.adminId === user?.uid
   const canAccessOrganizationMenu = !!organization?.id
-  const canLeaveOrganization = !!organization?.id && userData?.organizationRole === 'teacher'
+  const canLeaveOrganization = !!organization?.id && !isOrgAdmin
 
   useEffect(() => {
     setIsMounted(true)
 
-    // Update time every second
+    // Update time every minute to avoid unnecessary full-header rerenders.
     const timer = setInterval(() => {
       setCurrentTime(new Date())
-    }, 1000)
+    }, 60000)
 
     return () => clearInterval(timer)
   }, [])
@@ -141,7 +141,7 @@ export default function Header() {
                 {getGreeting()}, {displayName}
               </h1>
               <div className="flex items-center gap-2">
-                <p className="text-xs text-white/80 font-medium">{currentTime.toLocaleString()}</p>
+                <p className="text-xs text-white/80 font-medium">{currentTime.toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}</p>
                 {organization && (
                   <>
                     <span className="text-white/50">•</span>
@@ -234,6 +234,18 @@ export default function Header() {
                       {isOrgAdmin ? 'Settings' : 'Organization'}
                     </DropdownMenuItem>
                   </Link>
+                  {canLeaveOrganization && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        className="cursor-pointer text-red-600 focus:text-red-600"
+                        onClick={() => setShowLeaveDialog(true)}
+                      >
+                        <UserMinus className="h-4 w-4 mr-2" />
+                        Leave Organization
+                      </DropdownMenuItem>
+                    </>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
@@ -241,26 +253,42 @@ export default function Header() {
             <div className="ml-2">
               <ThemeToggle />
             </div>
-            {canLeaveOrganization && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowLeaveDialog(true)}
-                className="bg-red-500/15 hover:bg-red-500/25 text-white border-red-300/40 hover:border-red-300/70 font-medium shadow-md hover:shadow-lg transition-all duration-200 ml-2"
-              >
-                <UserMinus className="h-4 w-4 mr-2" />
-                Leave Org
-              </Button>
-            )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleLogout}
-              className="bg-white/15 hover:bg-white/25 text-white border-white/30 hover:border-white/50 font-medium shadow-md hover:shadow-lg transition-all duration-200 ml-2"
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Logout
-            </Button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="bg-white/15 hover:bg-white/25 text-white border-white/30 hover:border-white/50 font-medium shadow-md hover:shadow-lg transition-all duration-200 ml-2"
+                >
+                  <UserIcon className="h-4 w-4 mr-2" />
+                  Account
+                  <ChevronDown className="h-4 w-4 ml-2" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                <Link href="/profile">
+                  <DropdownMenuItem className="cursor-pointer">
+                    <UserIcon className="h-4 w-4 mr-2" />
+                    Profile
+                  </DropdownMenuItem>
+                </Link>
+                {canLeaveOrganization && (
+                  <DropdownMenuItem
+                    className="cursor-pointer text-red-600 focus:text-red-600"
+                    onClick={() => setShowLeaveDialog(true)}
+                  >
+                    <UserMinus className="h-4 w-4 mr-2" />
+                    Leave Organization
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="cursor-pointer" onClick={handleLogout}>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </nav>
 
           {/* Mobile Navigation */}

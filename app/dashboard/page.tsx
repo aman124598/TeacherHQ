@@ -1,7 +1,7 @@
 "use client"
 
+import dynamic from "next/dynamic"
 import { Badge } from "@/components/ui/badge"
-import { Geolocation } from "@capacitor/geolocation"
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
@@ -23,12 +23,17 @@ import {
   Plus,
   GraduationCap
 } from "lucide-react"
-import TodoList from "@/components/todo-list"
 import { calculateDistance } from "@/lib/distance-calculator"
 import { Progress } from "@/components/ui/progress"
 import { useAuth } from "@/lib/firebase/AuthContext"
-import WelcomeTour from "@/components/welcome-tour"
-import { getApiUrl } from "@/lib/config/api"
+
+const TodoList = dynamic(() => import("@/components/todo-list"), {
+  ssr: false,
+})
+
+const WelcomeTour = dynamic(() => import("@/components/welcome-tour"), {
+  ssr: false,
+})
 
 // Dev account email - shows sample data
 const DEV_EMAIL = "dev@example.com"
@@ -65,31 +70,32 @@ export default function Dashboard() {
 
   useEffect(() => {
     setIsMounted(true)
+  }, [])
 
-    // Load upcoming events from Firestore
+  useEffect(() => {
     async function loadUpcomingEvents() {
-      if (!user) return
+      if (!user?.uid) return
 
       try {
         const { getUserEvents, getTasksForUser } = await import("@/lib/firebase/firestore")
 
-        // Load personal events
-        const events = await getUserEvents(user.uid)
+        const [events, tasks] = await Promise.all([
+          getUserEvents(user.uid),
+          getTasksForUser(user.uid),
+        ])
+
         const parsedEvents = events.map((event: any) => ({
           ...event,
           date: event.date.seconds ? new Date(event.date.seconds * 1000) : new Date(event.date),
         }))
 
-        // Load admin-assigned tasks
-        const tasks = await getTasksForUser(user.uid)
         const parsedTasks = tasks.map((task: any) => ({
           ...task,
           date: task.dueDate?.seconds ? new Date(task.dueDate.seconds * 1000) : (task.dueDate ? new Date(task.dueDate) : new Date()),
-          type: task.type || "task"
+          type: task.type || "task",
         }))
 
         const allEvents = [...parsedEvents, ...parsedTasks]
-
         const today = new Date()
         today.setHours(0, 0, 0, 0)
 
@@ -108,37 +114,35 @@ export default function Dashboard() {
       }
     }
 
-    if (user) {
-      loadUpcomingEvents()
-    }
+    loadUpcomingEvents()
+  }, [user?.uid])
 
-    // --- Geofence Location Resolution ---
+  useEffect(() => {
     // 1. Check currentBranch (Campus-specific)
     // 2. Check organization (Global school-wide)
     // 3. Last resort fallback
-    if (userData) {
-        if (currentBranch?.location) {
-            console.log('Using Branch-specific location:', currentBranch.name);
-            setCollegeLocation(currentBranch.location);
-        } else if (organization?.location) {
-            console.log('Using Global Organization location:', organization.name);
-            setCollegeLocation(organization.location);
-        } else {
-            console.log('Using Default geofence coordinates');
-            setCollegeLocation({ latitude: 13.072204074042398, longitude: 77.50754474895987 });
-        }
+    if (!userData) return
+
+    if (currentBranch?.location) {
+      setCollegeLocation(currentBranch.location)
+      return
     }
 
-    // Check if user should see the tour (new users only)
-    if (user?.uid) {
-      const userTourKey = `${TOUR_COMPLETED_KEY}_${user.uid}`
-      const tourCompleted = localStorage.getItem(userTourKey)
-      if (!tourCompleted) {
-        // New user - show tour
-        setShowTour(true)
-      }
+    if (organization?.location) {
+      setCollegeLocation(organization.location)
+      return
     }
-  }, [isDevAccount, user, currentBranch, organization?.location])
+
+    setCollegeLocation({ latitude: 13.072204074042398, longitude: 77.50754474895987 })
+  }, [userData, currentBranch?.location, organization?.location])
+
+  useEffect(() => {
+    if (!user?.uid) return
+
+    const userTourKey = `${TOUR_COMPLETED_KEY}_${user.uid}`
+    const tourCompleted = localStorage.getItem(userTourKey)
+    setShowTour(!tourCompleted)
+  }, [user?.uid])
 
   // Return greeting based on local time
   const getGreeting = () => {
@@ -156,6 +160,8 @@ export default function Dashboard() {
     setAttendanceStatus(null)
 
     try {
+      const { Geolocation } = await import("@capacitor/geolocation")
+
       // Check permissions explicitly
       let permStatus = await Geolocation.checkPermissions();
       if (permStatus.location !== 'granted') {
