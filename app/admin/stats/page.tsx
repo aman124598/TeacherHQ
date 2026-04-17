@@ -12,7 +12,7 @@ import { useAuth } from "@/lib/firebase/AuthContext"
 
 function StatsContent() {
   const searchParams = useSearchParams()
-  const { userData, currentBranch, currentDepartment } = useAuth()
+  const { userData, organization, currentBranch, currentDepartment } = useAuth()
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<UserData | null>(null)
   const [stats, setStats] = useState<any>(null)
@@ -21,61 +21,88 @@ function StatsContent() {
   useEffect(() => {
     async function loadData() {
       setLoading(true)
-      
+
       if (userId) {
+        if (!organization?.id) {
+          setUser(null)
+          setStats(null)
+          setLoading(false)
+          return
+        }
+
         // Load specific user stats
         const [userData, attendanceData] = await Promise.all([
           getUserById(userId),
           getAttendanceStats(userId)
         ])
+
+        if (userData?.organizationId !== organization.id) {
+          setUser(null)
+          setStats(null)
+          setLoading(false)
+          return
+        }
+
         setUser(userData)
         setStats(attendanceData)
       } else {
+        if (!organization?.id) {
+          setGlobalStats({
+            totalUsers: 0,
+            totalRecords: 0,
+            totalPresent: 0,
+            totalAbsent: 0,
+            attendanceRate: 0,
+          })
+          setLoading(false)
+          return
+        }
+
         // Load data
         const [allUsers, allAttendance] = await Promise.all([
-          getAllUsers(),
-          getAllAttendance()
+          getAllUsers(organization.id),
+          getAllAttendance(organization.id)
         ])
-        
+
         // --- Hierarchical Filtering ---
         let filteredUsers = allUsers;
         let filteredAttendance = allAttendance;
 
         if (userData?.organizationRole === 'branch_admin' && userData.branchId) {
-            filteredUsers = allUsers.filter(u => u.branchId === userData.branchId);
-            const branchUserIds = new Set(filteredUsers.map(u => u.uid));
-            filteredAttendance = allAttendance.filter((a: any) => branchUserIds.has(a.userId));
+          filteredUsers = allUsers.filter(u => u.branchId === userData.branchId);
+          const branchUserIds = new Set(filteredUsers.map(u => u.uid));
+          filteredAttendance = allAttendance.filter((a: any) => branchUserIds.has(a.userId));
         } else if (userData?.organizationRole === 'hod' && userData.departmentId) {
-            filteredUsers = allUsers.filter(u => u.departmentId === userData.departmentId);
-            const deptUserIds = new Set(filteredUsers.map(u => u.uid));
-            filteredAttendance = allAttendance.filter((a: any) => deptUserIds.has(a.userId));
+          filteredUsers = allUsers.filter(u => u.departmentId === userData.departmentId);
+          const deptUserIds = new Set(filteredUsers.map(u => u.uid));
+          filteredAttendance = allAttendance.filter((a: any) => deptUserIds.has(a.userId));
         }
-        
+
         // Calculate statistics
         let totalPresent = 0
         let totalAbsent = 0
         let totalRecords = filteredAttendance.length
-        
+
         filteredAttendance.forEach((record: any) => {
           totalPresent += record.present || 0
           totalAbsent += record.absent || 0
         })
-        
+
         setGlobalStats({
           totalUsers: filteredUsers.length,
           totalRecords,
           totalPresent,
           totalAbsent,
-          attendanceRate: totalPresent + totalAbsent > 0 
-            ? Math.round((totalPresent / (totalPresent + totalAbsent)) * 100) 
+          attendanceRate: totalPresent + totalAbsent > 0
+            ? Math.round((totalPresent / (totalPresent + totalAbsent)) * 100)
             : 0
         })
       }
-      
+
       setLoading(false)
     }
     loadData()
-  }, [userId])
+  }, [organization?.id, userId])
 
   if (loading) {
     return (
@@ -91,23 +118,23 @@ function StatsContent() {
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-            {userData?.organizationRole === 'admin' ? 'Global Statistics' : 
-             userData?.organizationRole === 'branch_admin' ? 'Branch Statistics' : 
-             'Department Statistics'}
+            {userData?.organizationRole === 'admin' ? 'Global Statistics' :
+              userData?.organizationRole === 'branch_admin' ? 'Branch Statistics' :
+                'Department Statistics'}
           </h1>
           <div className="flex items-center gap-2 mt-1">
-             <p className="text-muted-foreground italic">Overview for </p>
-             {userData?.organizationRole === 'branch_admin' ? (
-                <div className="flex items-center gap-1 text-xs font-bold text-gray-700 bg-gray-100 px-2 py-0.5 rounded">
-                   <Building2 className="w-3 h-3" /> {currentBranch?.name || "Your Branch"}
-                </div>
-             ) : userData?.organizationRole === 'hod' ? (
-                <div className="flex items-center gap-1 text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded">
-                   <Layers className="w-3 h-3" /> {currentDepartment?.name || "Your Department"}
-                </div>
-             ) : (
-                <span className="text-xs font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded">Institution Wide</span>
-             )}
+            <p className="text-muted-foreground italic">Overview for </p>
+            {userData?.organizationRole === 'branch_admin' ? (
+              <div className="flex items-center gap-1 text-xs font-bold text-gray-700 bg-gray-100 px-2 py-0.5 rounded">
+                <Building2 className="w-3 h-3" /> {currentBranch?.name || "Your Branch"}
+              </div>
+            ) : userData?.organizationRole === 'hod' ? (
+              <div className="flex items-center gap-1 text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded">
+                <Layers className="w-3 h-3" /> {currentDepartment?.name || "Your Department"}
+              </div>
+            ) : (
+              <span className="text-xs font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded">Institution Wide</span>
+            )}
           </div>
         </div>
 

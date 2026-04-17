@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { getAllUsers } from "@/lib/firebase/firestore"
 import { UserData } from "@/lib/firebase/auth"
+import { useAuth } from "@/lib/firebase/AuthContext"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,20 +11,27 @@ import { Calendar, Search, ArrowRight, User } from "lucide-react"
 import Link from "next/link"
 
 export default function ScheduleManagementPage() {
+  const { organization } = useAuth()
   const [users, setUsers] = useState<UserData[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
 
   useEffect(() => {
     async function loadUsers() {
-      const allUsers = await getAllUsers()
+      if (!organization?.id) {
+        setUsers([])
+        setLoading(false)
+        return
+      }
+
+      const allUsers = await getAllUsers(organization.id)
       setUsers(allUsers)
       setLoading(false)
     }
     loadUsers()
-  }, [])
+  }, [organization?.id])
 
-  const filteredUsers = users.filter(user => 
+  const filteredUsers = users.filter(user =>
     user.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email?.toLowerCase().includes(searchTerm.toLowerCase())
   )
@@ -39,8 +47,8 @@ export default function ScheduleManagementPage() {
         </div>
         <div className="relative w-full md:w-64">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input 
-            placeholder="Search teachers..." 
+          <Input
+            placeholder="Search teachers..."
             className="pl-8 bg-white dark:bg-slate-800"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}

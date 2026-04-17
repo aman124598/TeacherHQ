@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { getAllTeachers, getAllUsers, getAllTasks, TaskData } from "@/lib/firebase/firestore"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Users, Calendar, CheckSquare, Clock, ArrowRight, BarChart4, TrendingUp, Zap, AlertCircle, Building2, Layers } from "lucide-react"
+import { Users, Calendar, CheckSquare, Clock, ArrowRight, BarChart4, TrendingUp, Zap, AlertCircle, Building2, Layers, CheckCircle2 } from "lucide-react"
 import { useAuth } from "@/lib/firebase/AuthContext"
 import { getPlanDetails } from "@/lib/config/plans"
 import { Progress } from "@/components/ui/progress"
@@ -28,45 +28,50 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     async function loadStats() {
+      if (!organization?.id) {
+        setLoading(false)
+        return
+      }
+
       const [users, teachers, tasks] = await Promise.all([
-        getAllUsers(),
-        getAllTeachers(),
-        getAllTasks()
+        getAllUsers(organization.id),
+        getAllTeachers(organization.id),
+        getAllTasks(organization.id)
       ])
-      
+
       // --- Hierarchical Filtering ---
       let filteredUsers = users;
       let filteredTeachers = teachers;
       let filteredTasks = tasks;
 
       if (userData?.organizationRole === 'branch_admin' && userData.branchId) {
-          filteredUsers = users.filter(u => u.branchId === userData.branchId);
-          filteredTeachers = teachers.filter(t => t.branchId === userData.branchId);
-          const branchTeacherIds = new Set(filteredUsers.map(u => u.uid));
-          filteredTasks = tasks.filter(t => t.assignedTo === 'all' || branchTeacherIds.has(t.teacherId));
+        filteredUsers = users.filter(u => u.branchId === userData.branchId);
+        filteredTeachers = teachers.filter(t => t.branchId === userData.branchId);
+        const branchTeacherIds = new Set(filteredUsers.map(u => u.uid));
+        filteredTasks = tasks.filter(t => t.assignedTo === 'all' || branchTeacherIds.has(t.teacherId));
       } else if (userData?.organizationRole === 'hod' && userData.departmentId) {
-          filteredUsers = users.filter(u => u.departmentId === userData.departmentId);
-          filteredTeachers = teachers.filter(t => t.departmentId === userData.departmentId);
-          const deptTeacherIds = new Set(filteredUsers.map(u => u.uid));
-          filteredTasks = tasks.filter(t => t.assignedTo === 'all' || deptTeacherIds.has(t.teacherId));
+        filteredUsers = users.filter(u => u.departmentId === userData.departmentId);
+        filteredTeachers = teachers.filter(t => t.departmentId === userData.departmentId);
+        const deptTeacherIds = new Set(filteredUsers.map(u => u.uid));
+        filteredTasks = tasks.filter(t => t.assignedTo === 'all' || deptTeacherIds.has(t.teacherId));
       }
 
       const pendingTasks = filteredTasks.filter(t => t.status === 'pending')
       const completedTasks = filteredTasks.filter(t => t.status === 'completed')
-      
+
       setStats({
         totalUsers: filteredUsers.length,
         totalTeachers: filteredTeachers.length,
         pendingTasks: pendingTasks.length,
         completedTasks: completedTasks.length
       })
-      
+
       // Get 5 most recent tasks
       setRecentTasks(filteredTasks.slice(0, 5))
       setLoading(false)
     }
     loadStats()
-  }, [userData?.organizationRole, userData?.branchId, userData?.departmentId])
+  }, [organization?.id, userData?.organizationRole, userData?.branchId, userData?.departmentId])
 
   const statCards = [
     {
@@ -146,7 +151,7 @@ export default function AdminDashboard() {
   ]
 
   const getTypeColor = (type: string) => {
-    switch(type) {
+    switch (type) {
       case 'task': return 'bg-blue-500'
       case 'notice': return 'bg-yellow-500'
       case 'event': return 'bg-purple-500'
@@ -163,20 +168,20 @@ export default function AdminDashboard() {
             Admin Dashboard
           </h1>
           <p className="text-white/80 text-lg">
-            Welcome back! Here's an overview of the {userData?.organizationRole === 'admin' ? 'Institution' : 
-             userData?.organizationRole === 'branch_admin' ? currentBranch?.name : 
-             currentDepartment?.name} attendance system.
+            Welcome back! Here's an overview of the {userData?.organizationRole === 'admin' ? 'Institution' :
+              userData?.organizationRole === 'branch_admin' ? currentBranch?.name :
+                currentDepartment?.name} attendance system.
           </p>
           <div className="flex gap-3 mt-4">
-             {userData?.organizationRole === 'branch_admin' ? (
-                <div className="flex items-center gap-2 px-3 py-1 bg-white/20 rounded-full text-xs font-medium backdrop-blur-md">
-                   <Building2 className="w-4 h-4" /> Branch: {currentBranch?.name}
-                </div>
-             ) : userData?.organizationRole === 'hod' ? (
-                <div className="flex items-center gap-2 px-3 py-1 bg-white/20 rounded-full text-xs font-medium backdrop-blur-md">
-                   <Layers className="w-4 h-4" /> Department: {currentDepartment?.name}
-                </div>
-             ) : null}
+            {userData?.organizationRole === 'branch_admin' ? (
+              <div className="flex items-center gap-2 px-3 py-1 bg-white/20 rounded-full text-xs font-medium backdrop-blur-md">
+                <Building2 className="w-4 h-4" /> Branch: {currentBranch?.name}
+              </div>
+            ) : userData?.organizationRole === 'hod' ? (
+              <div className="flex items-center gap-2 px-3 py-1 bg-white/20 rounded-full text-xs font-medium backdrop-blur-md">
+                <Layers className="w-4 h-4" /> Department: {currentDepartment?.name}
+              </div>
+            ) : null}
           </div>
         </div>
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2"></div>
@@ -224,9 +229,9 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent className="grid gap-3">
             {quickActions.map((action, i) => (
-              <Button 
+              <Button
                 key={i}
-                asChild 
+                asChild
                 className={`w-full justify-start h-auto py-4 bg-gradient-to-r ${action.gradient} hover:opacity-90 text-white shadow-md group`}
               >
                 <Link href={action.href}>
@@ -274,8 +279,8 @@ export default function AdminDashboard() {
             ) : (
               <div className="space-y-3">
                 {recentTasks.map((task) => (
-                  <div 
-                    key={task.id} 
+                  <div
+                    key={task.id}
                     className="flex items-center justify-between p-3 rounded-lg border dark:border-slate-700 bg-white dark:bg-slate-800 hover:shadow-md transition-all"
                   >
                     <div className="flex items-center gap-3 min-w-0">
@@ -312,27 +317,27 @@ export default function AdminDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-               <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-sm font-medium uppercase text-purple-600">{organization?.plan || "Starter"} Plan</span>
-                    <Badge variant="outline" className="text-[10px] bg-green-50 text-green-700 border-green-200">Active</Badge>
-                  </div>
-                  <p className="text-xs text-muted-foreground italic mb-3">Next billing: Auto-renewing</p>
-               </div>
-               
-               <div className="space-y-1">
-                  <div className="flex justify-between text-xs">
-                    <span>Staff Limit Usage</span>
-                    <span className="font-bold">{stats.totalUsers} / {getPlanDetails(organization?.plan).maxMembers === Infinity ? "∞" : getPlanDetails(organization?.plan).maxMembers}</span>
-                  </div>
-                  <Progress value={(stats.totalUsers / getPlanDetails(organization?.plan).maxMembers) * 100} className="h-1.5" />
-               </div>
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-sm font-medium uppercase text-purple-600">{organization?.plan || "Starter"} Plan</span>
+                  <Badge variant="outline" className="text-[10px] bg-green-50 text-green-700 border-green-200">Active</Badge>
+                </div>
+                <p className="text-xs text-muted-foreground italic mb-3">Next billing: Auto-renewing</p>
+              </div>
 
-               <Button variant="outline" size="sm" className="w-full mt-2" asChild>
-                  <Link href="/admin/billing">
-                    View Billing Details <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-               </Button>
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs">
+                  <span>Staff Limit Usage</span>
+                  <span className="font-bold">{stats.totalUsers} / {getPlanDetails(organization?.plan).maxMembers === Infinity ? "∞" : getPlanDetails(organization?.plan).maxMembers}</span>
+                </div>
+                <Progress value={(stats.totalUsers / getPlanDetails(organization?.plan).maxMembers) * 100} className="h-1.5" />
+              </div>
+
+              <Button variant="outline" size="sm" className="w-full mt-2" asChild>
+                <Link href="/admin/billing">
+                  View Billing Details <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
             </CardContent>
           </Card>
         </div>

@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Progress } from "@/components/ui/progress"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
@@ -34,24 +35,25 @@ export default function ManageUsersPage() {
     branchId: "",
     departmentId: ""
   })
-  
+
   const [availableBranches, setAvailableBranches] = useState<Branch[]>([])
   const [availableDepartments, setAvailableDepartments] = useState<Department[]>([])
 
   const loadInitialData = async () => {
     setLoading(true)
     if (organization?.id) {
-        const [allUsers, branches, depts] = await Promise.all([
-            getAllUsers(),
-            getBranches(organization.id),
-            getAllDepartmentsForOrg(organization.id)
-        ])
-        setUsers(allUsers)
-        setAvailableBranches(branches)
-        setAvailableDepartments(depts)
+      const [allUsers, branches, depts] = await Promise.all([
+        getAllUsers(organization.id),
+        getBranches(organization.id),
+        getAllDepartmentsForOrg(organization.id)
+      ])
+      setUsers(allUsers)
+      setAvailableBranches(branches)
+      setAvailableDepartments(depts)
     } else {
-        const allUsers = await getAllUsers()
-        setUsers(allUsers)
+      setUsers([])
+      setAvailableBranches([])
+      setAvailableDepartments([])
     }
     setLoading(false)
   }
@@ -60,7 +62,7 @@ export default function ManageUsersPage() {
     loadInitialData()
   }, [organization?.id])
 
-  const filteredUsers = users.filter(user => 
+  const filteredUsers = users.filter(user =>
     user.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (user.teacherId && String(user.teacherId).includes(searchTerm))
@@ -82,19 +84,19 @@ export default function ManageUsersPage() {
   const handleSaveEdit = async () => {
     if (!editingUser) return
     setSaving(true)
-    
+
     const result = await updateUser(editingUser.uid, editForm)
-    
+
     if (result.success) {
       // Update local state
-      setUsers(users.map(u => 
+      setUsers(users.map(u =>
         u.uid === editingUser.uid ? { ...u, ...editForm } : u
       ))
       setEditingUser(null)
     } else {
       alert("Failed to update user")
     }
-    
+
     setSaving(false)
   }
 
@@ -105,16 +107,16 @@ export default function ManageUsersPage() {
   const handleConfirmDelete = async () => {
     if (!deletingUser) return
     setSaving(true)
-    
+
     const result = await deleteUser(deletingUser.uid)
-    
+
     if (result.success) {
       setUsers(users.filter(u => u.uid !== deletingUser.uid))
       setDeletingUser(null)
     } else {
       alert("Failed to delete user")
     }
-    
+
     setSaving(false)
   }
 
@@ -134,24 +136,24 @@ export default function ManageUsersPage() {
             </Badge>
           </div>
         </div>
-        
+
         {/* Usage Progress */}
         <div className="flex-1 max-w-xs mx-4 hidden lg:block">
-           <div className="flex justify-between text-xs mb-1">
-              <span className="text-muted-foreground italic">Staff Usage</span>
-              <span className="font-bold">{users.length} / {getPlanDetails(organization?.plan).maxMembers === Infinity ? "∞" : getPlanDetails(organization?.plan).maxMembers}</span>
-           </div>
-           <Progress 
-              value={(users.length / getPlanDetails(organization?.plan).maxMembers) * 100} 
-              className={`h-1.5 ${users.length >= getPlanDetails(organization?.plan).maxMembers ? "bg-red-100" : ""}`} 
-           />
+          <div className="flex justify-between text-xs mb-1">
+            <span className="text-muted-foreground italic">Staff Usage</span>
+            <span className="font-bold">{users.length} / {getPlanDetails(organization?.plan).maxMembers === Infinity ? "∞" : getPlanDetails(organization?.plan).maxMembers}</span>
+          </div>
+          <Progress
+            value={(users.length / getPlanDetails(organization?.plan).maxMembers) * 100}
+            className={`h-1.5 ${users.length >= getPlanDetails(organization?.plan).maxMembers ? "bg-red-100" : ""}`}
+          />
         </div>
 
         <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="icon"
-            onClick={loadUsers}
+            onClick={loadInitialData}
             disabled={loading}
             className="shrink-0"
           >
@@ -159,8 +161,8 @@ export default function ManageUsersPage() {
           </Button>
           <div className="relative w-full md:w-64">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input 
-              placeholder="Search users..." 
+            <Input
+              placeholder="Search users..."
               className="pl-8 bg-white dark:bg-slate-800"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -219,9 +221,9 @@ export default function ManageUsersPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
+                        <Button
+                          size="sm"
+                          variant="outline"
                           onClick={() => handleEditClick(user)}
                           className="h-8 border-purple-200 hover:bg-purple-50 hover:text-purple-600 dark:border-purple-900 dark:hover:bg-purple-900/30"
                         >
@@ -240,9 +242,9 @@ export default function ManageUsersPage() {
                             Stats
                           </Link>
                         </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
+                        <Button
+                          size="sm"
+                          variant="outline"
                           onClick={() => handleDeleteClick(user)}
                           className="h-8 border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-red-900 dark:hover:bg-red-900/30"
                         >
@@ -272,7 +274,7 @@ export default function ManageUsersPage() {
               <Label>Display Name</Label>
               <Input
                 value={editForm.displayName}
-                onChange={(e) => setEditForm({...editForm, displayName: e.target.value})}
+                onChange={(e) => setEditForm({ ...editForm, displayName: e.target.value })}
                 className="dark:bg-slate-900"
               />
             </div>
@@ -281,14 +283,14 @@ export default function ManageUsersPage() {
               <Input
                 type="email"
                 value={editForm.email}
-                onChange={(e) => setEditForm({...editForm, email: e.target.value})}
+                onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
                 className="dark:bg-slate-900"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Role</Label>
-                <Select value={editForm.role} onValueChange={(val) => setEditForm({...editForm, role: val})}>
+                <Select value={editForm.role} onValueChange={(val) => setEditForm({ ...editForm, role: val })}>
                   <SelectTrigger className="dark:bg-slate-900">
                     <SelectValue />
                   </SelectTrigger>
@@ -305,7 +307,7 @@ export default function ManageUsersPage() {
                 <Label>Teacher ID</Label>
                 <Input
                   value={editForm.teacherId}
-                  onChange={(e) => setEditForm({...editForm, teacherId: e.target.value})}
+                  onChange={(e) => setEditForm({ ...editForm, teacherId: e.target.value })}
                   className="dark:bg-slate-900"
                 />
               </div>
@@ -313,9 +315,9 @@ export default function ManageUsersPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Campus Branch</Label>
-                <Select 
-                  value={editForm.branchId} 
-                  onValueChange={(val) => setEditForm({...editForm, branchId: val})}
+                <Select
+                  value={editForm.branchId}
+                  onValueChange={(val) => setEditForm({ ...editForm, branchId: val })}
                 >
                   <SelectTrigger className="dark:bg-slate-900">
                     <SelectValue placeholder="Select Branch" />
@@ -330,9 +332,9 @@ export default function ManageUsersPage() {
               </div>
               <div className="space-y-2">
                 <Label>Department</Label>
-                <Select 
-                  value={editForm.departmentId} 
-                  onValueChange={(val) => setEditForm({...editForm, departmentId: val})}
+                <Select
+                  value={editForm.departmentId}
+                  onValueChange={(val) => setEditForm({ ...editForm, departmentId: val })}
                 >
                   <SelectTrigger className="dark:bg-slate-900">
                     <SelectValue placeholder="Select Dept" />
@@ -352,8 +354,8 @@ export default function ManageUsersPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingUser(null)}>Cancel</Button>
-            <Button 
-              onClick={handleSaveEdit} 
+            <Button
+              onClick={handleSaveEdit}
               disabled={saving}
               className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white"
             >
@@ -370,15 +372,15 @@ export default function ManageUsersPage() {
           <DialogHeader>
             <DialogTitle className="text-red-600">Delete User</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete <strong>{deletingUser?.displayName}</strong>? 
+              Are you sure you want to delete <strong>{deletingUser?.displayName}</strong>?
               This will also remove their schedule and attendance data. This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setDeletingUser(null)}>Cancel</Button>
-            <Button 
+            <Button
               variant="destructive"
-              onClick={handleConfirmDelete} 
+              onClick={handleConfirmDelete}
               disabled={saving}
             >
               {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />}

@@ -12,9 +12,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { createTask, getAllTasks, updateTask, deleteTask, getAllTeachers, TaskData } from "@/lib/firebase/firestore"
 import { UserData } from "@/lib/firebase/auth"
+import { useAuth } from "@/lib/firebase/AuthContext"
 import { CheckSquare, Plus, Calendar as CalendarIcon, Trash2, Pencil, Loader2, RefreshCw, Bell, Clock, CheckCircle2 } from "lucide-react"
 
 export default function AdminTasksPage() {
+  const { organization } = useAuth()
   const [loading, setLoading] = useState(false)
   const [tasksLoading, setTasksLoading] = useState(true)
   const [tasks, setTasks] = useState<TaskData[]>([])
@@ -22,7 +24,7 @@ export default function AdminTasksPage() {
   const [editingTask, setEditingTask] = useState<TaskData | null>(null)
   const [deletingTask, setDeletingTask] = useState<TaskData | null>(null)
   const [saving, setSaving] = useState(false)
-  
+
   const [task, setTask] = useState({
     title: "",
     description: "",
@@ -33,9 +35,17 @@ export default function AdminTasksPage() {
 
   const loadData = async () => {
     setTasksLoading(true)
+
+    if (!organization?.id) {
+      setTasks([])
+      setTeachers([])
+      setTasksLoading(false)
+      return
+    }
+
     const [allTasks, allTeachers] = await Promise.all([
-      getAllTasks(),
-      getAllTeachers()
+      getAllTasks(organization.id),
+      getAllTeachers(organization.id)
     ])
     setTasks(allTasks)
     setTeachers(allTeachers)
@@ -44,15 +54,16 @@ export default function AdminTasksPage() {
 
   useEffect(() => {
     loadData()
-  }, [])
+  }, [organization?.id])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    
+
     try {
       await createTask({
         ...task,
+        organizationId: organization?.id,
         dueDate: task.dueDate ? new Date(task.dueDate) : null,
         type: task.type as any,
         status: 'pending'
@@ -74,7 +85,7 @@ export default function AdminTasksPage() {
   const handleSaveEdit = async () => {
     if (!editingTask?.id) return
     setSaving(true)
-    
+
     const result = await updateTask(editingTask.id, {
       title: editingTask.title,
       description: editingTask.description,
@@ -82,25 +93,25 @@ export default function AdminTasksPage() {
       assignedTo: editingTask.assignedTo,
       status: editingTask.status
     })
-    
+
     if (result.success) {
       setTasks(tasks.map(t => t.id === editingTask.id ? editingTask : t))
       setEditingTask(null)
     } else {
       alert("Failed to update task")
     }
-    
+
     setSaving(false)
   }
 
   const handleStatusToggle = async (t: TaskData) => {
     if (!t.id) return
     const newStatus = t.status === 'pending' ? 'completed' : 'pending'
-    
+
     const result = await updateTask(t.id, { status: newStatus })
-    
+
     if (result.success) {
-      setTasks(tasks.map(task => 
+      setTasks(tasks.map(task =>
         task.id === t.id ? { ...task, status: newStatus } : task
       ))
     }
@@ -113,21 +124,21 @@ export default function AdminTasksPage() {
   const handleConfirmDelete = async () => {
     if (!deletingTask?.id) return
     setSaving(true)
-    
+
     const result = await deleteTask(deletingTask.id)
-    
+
     if (result.success) {
       setTasks(tasks.filter(t => t.id !== deletingTask.id))
       setDeletingTask(null)
     } else {
       alert("Failed to delete task")
     }
-    
+
     setSaving(false)
   }
 
   const getTypeColor = (type: string) => {
-    switch(type) {
+    switch (type) {
       case 'task': return 'bg-blue-500'
       case 'notice': return 'bg-yellow-500'
       case 'event': return 'bg-purple-500'
@@ -147,8 +158,8 @@ export default function AdminTasksPage() {
           </h1>
           <p className="text-muted-foreground mt-1">Create and manage tasks, notices, and events for teachers</p>
         </div>
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           size="sm"
           onClick={loadData}
           disabled={tasksLoading}
@@ -172,10 +183,10 @@ export default function AdminTasksPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label>Task Title</Label>
-                <Input 
-                  placeholder="e.g., Submit Monthly Report" 
+                <Input
+                  placeholder="e.g., Submit Monthly Report"
                   value={task.title}
-                  onChange={(e) => setTask({...task, title: e.target.value})}
+                  onChange={(e) => setTask({ ...task, title: e.target.value })}
                   required
                   className="dark:bg-slate-900"
                 />
@@ -184,9 +195,9 @@ export default function AdminTasksPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Type</Label>
-                  <Select 
-                    value={task.type} 
-                    onValueChange={(val) => setTask({...task, type: val})}
+                  <Select
+                    value={task.type}
+                    onValueChange={(val) => setTask({ ...task, type: val })}
                   >
                     <SelectTrigger className="dark:bg-slate-900">
                       <SelectValue />
@@ -198,44 +209,44 @@ export default function AdminTasksPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="space-y-2">
-                   <Label>Assign To</Label>
-                   <Select 
-                     value={task.assignedTo} 
-                     onValueChange={(val) => setTask({...task, assignedTo: val})}
-                   >
-                     <SelectTrigger className="dark:bg-slate-900">
-                       <SelectValue />
-                     </SelectTrigger>
-                     <SelectContent>
-                       <SelectItem value="all">All Teachers</SelectItem>
-                       {teachers.map(t => (
-                         <SelectItem key={t.uid} value={t.uid}>
-                           {t.displayName || t.email}
-                         </SelectItem>
-                       ))}
-                     </SelectContent>
-                   </Select>
+                  <Label>Assign To</Label>
+                  <Select
+                    value={task.assignedTo}
+                    onValueChange={(val) => setTask({ ...task, assignedTo: val })}
+                  >
+                    <SelectTrigger className="dark:bg-slate-900">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Teachers</SelectItem>
+                      {teachers.map(t => (
+                        <SelectItem key={t.uid} value={t.uid}>
+                          {t.displayName || t.email}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
               <div className="space-y-2">
                 <Label>Description</Label>
-                <Textarea 
+                <Textarea
                   placeholder="Details about the task..."
                   value={task.description}
-                  onChange={(e) => setTask({...task, description: e.target.value})}
+                  onChange={(e) => setTask({ ...task, description: e.target.value })}
                   className="h-24 dark:bg-slate-900"
                 />
               </div>
 
               <div className="space-y-2">
                 <Label>Due Date (Optional)</Label>
-                <Input 
-                  type="date" 
+                <Input
+                  type="date"
                   value={task.dueDate}
-                  onChange={(e) => setTask({...task, dueDate: e.target.value})}
+                  onChange={(e) => setTask({ ...task, dueDate: e.target.value })}
                   className="dark:bg-slate-900"
                 />
               </div>
@@ -278,7 +289,7 @@ export default function AdminTasksPage() {
                   Completed ({completedTasks.length})
                 </TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="pending" className="p-4 max-h-[400px] overflow-y-auto">
                 {tasksLoading ? (
                   <div className="flex items-center justify-center py-8">
@@ -304,25 +315,25 @@ export default function AdminTasksPage() {
                             )}
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
-                            <Button 
-                              size="sm" 
-                              variant="ghost" 
+                            <Button
+                              size="sm"
+                              variant="ghost"
                               onClick={() => handleStatusToggle(t)}
                               className="h-8 w-8 p-0 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
                             >
                               <CheckCircle2 className="h-4 w-4" />
                             </Button>
-                            <Button 
-                              size="sm" 
-                              variant="ghost" 
+                            <Button
+                              size="sm"
+                              variant="ghost"
                               onClick={() => handleEditClick(t)}
                               className="h-8 w-8 p-0"
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
-                            <Button 
-                              size="sm" 
-                              variant="ghost" 
+                            <Button
+                              size="sm"
+                              variant="ghost"
                               onClick={() => handleDeleteClick(t)}
                               className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                             >
@@ -335,7 +346,7 @@ export default function AdminTasksPage() {
                   </div>
                 )}
               </TabsContent>
-              
+
               <TabsContent value="completed" className="p-4 max-h-[400px] overflow-y-auto">
                 {completedTasks.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">No completed tasks</p>
@@ -351,17 +362,17 @@ export default function AdminTasksPage() {
                             <h4 className="font-medium dark:text-white truncate line-through">{t.title}</h4>
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
-                            <Button 
-                              size="sm" 
-                              variant="ghost" 
+                            <Button
+                              size="sm"
+                              variant="ghost"
                               onClick={() => handleStatusToggle(t)}
                               className="h-8 w-8 p-0 text-yellow-600"
                             >
                               <Clock className="h-4 w-4" />
                             </Button>
-                            <Button 
-                              size="sm" 
-                              variant="ghost" 
+                            <Button
+                              size="sm"
+                              variant="ghost"
                               onClick={() => handleDeleteClick(t)}
                               className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                             >
@@ -394,7 +405,7 @@ export default function AdminTasksPage() {
                 <Label>Title</Label>
                 <Input
                   value={editingTask.title}
-                  onChange={(e) => setEditingTask({...editingTask, title: e.target.value})}
+                  onChange={(e) => setEditingTask({ ...editingTask, title: e.target.value })}
                   className="dark:bg-slate-900"
                 />
               </div>
@@ -402,16 +413,16 @@ export default function AdminTasksPage() {
                 <Label>Description</Label>
                 <Textarea
                   value={editingTask.description}
-                  onChange={(e) => setEditingTask({...editingTask, description: e.target.value})}
+                  onChange={(e) => setEditingTask({ ...editingTask, description: e.target.value })}
                   className="dark:bg-slate-900"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Type</Label>
-                  <Select 
-                    value={editingTask.type} 
-                    onValueChange={(val) => setEditingTask({...editingTask, type: val as any})}
+                  <Select
+                    value={editingTask.type}
+                    onValueChange={(val) => setEditingTask({ ...editingTask, type: val as any })}
                   >
                     <SelectTrigger className="dark:bg-slate-900">
                       <SelectValue />
@@ -425,9 +436,9 @@ export default function AdminTasksPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Status</Label>
-                  <Select 
-                    value={editingTask.status} 
-                    onValueChange={(val) => setEditingTask({...editingTask, status: val as any})}
+                  <Select
+                    value={editingTask.status}
+                    onValueChange={(val) => setEditingTask({ ...editingTask, status: val as any })}
                   >
                     <SelectTrigger className="dark:bg-slate-900">
                       <SelectValue />
@@ -443,8 +454,8 @@ export default function AdminTasksPage() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingTask(null)}>Cancel</Button>
-            <Button 
-              onClick={handleSaveEdit} 
+            <Button
+              onClick={handleSaveEdit}
               disabled={saving}
               className="bg-gradient-to-r from-orange-500 to-red-600 text-white"
             >
@@ -461,15 +472,15 @@ export default function AdminTasksPage() {
           <DialogHeader>
             <DialogTitle className="text-red-600">Delete Task</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete "<strong>{deletingTask?.title}</strong>"? 
+              Are you sure you want to delete "<strong>{deletingTask?.title}</strong>"?
               This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setDeletingTask(null)}>Cancel</Button>
-            <Button 
+            <Button
               variant="destructive"
-              onClick={handleConfirmDelete} 
+              onClick={handleConfirmDelete}
               disabled={saving}
             >
               {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />}

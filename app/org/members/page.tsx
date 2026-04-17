@@ -32,24 +32,24 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import Header from "@/components/header"
-import { 
-  Users, 
-  Search, 
-  MoreVertical, 
-  Shield, 
+import {
+  Users,
+  Search,
+  MoreVertical,
+  Shield,
   ShieldCheck,
   UserMinus,
   Mail,
   Calendar,
-  ArrowLeft,
   CheckCircle,
   Copy
 } from "lucide-react"
 import { useAuth } from "@/lib/firebase/AuthContext"
-import { 
-  getOrganizationMembers, 
-  removeMemberFromOrganization, 
-  promoteMemberToAdmin 
+import { useToast } from "@/hooks/use-toast"
+import {
+  getOrganizationMembers,
+  removeMemberFromOrganization,
+  demoteMemberToTeacher
 } from "@/lib/firebase/organizations"
 
 interface Member {
@@ -66,6 +66,7 @@ interface Member {
 export default function OrgMembersPage() {
   const router = useRouter()
   const { user, userData, organization, loading, refreshUserData } = useAuth()
+  const { toast } = useToast()
   const [members, setMembers] = useState<Member[]>([])
   const [filteredMembers, setFilteredMembers] = useState<Member[]>([])
   const [searchQuery, setSearchQuery] = useState("")
@@ -73,10 +74,11 @@ export default function OrgMembersPage() {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
   const [copied, setCopied] = useState(false)
-  
+
   // Dialog states
   const [memberToRemove, setMemberToRemove] = useState<Member | null>(null)
-  const [memberToPromote, setMemberToPromote] = useState<Member | null>(null)
+  const [memberToDemote, setMemberToDemote] = useState<Member | null>(null)
+  const isOrgAdmin = userData?.organizationRole === 'admin'
 
   useEffect(() => {
     loadMembers()
@@ -88,7 +90,7 @@ export default function OrgMembersPage() {
       const query = searchQuery.toLowerCase()
       setFilteredMembers(
         members.filter(
-          m => 
+          m =>
             m.displayName?.toLowerCase().includes(query) ||
             m.email?.toLowerCase().includes(query)
         )
@@ -100,7 +102,7 @@ export default function OrgMembersPage() {
 
   const loadMembers = async () => {
     if (!organization?.id) return
-    
+
     setIsLoading(true)
     try {
       const membersList = await getOrganizationMembers(organization.id)
@@ -115,7 +117,7 @@ export default function OrgMembersPage() {
 
   const handleRemoveMember = async () => {
     if (!memberToRemove || !organization?.id) return
-    
+
     try {
       await removeMemberFromOrganization(organization.id, memberToRemove.id)
       setSuccess(`${memberToRemove.displayName || memberToRemove.email} has been removed`)
@@ -129,18 +131,23 @@ export default function OrgMembersPage() {
     }
   }
 
-  const handlePromoteMember = async () => {
-    if (!memberToPromote || !organization?.id) return
-    
+  const handleDemoteMember = async () => {
+    if (!memberToDemote || !organization?.id) return
+
     try {
-      await promoteMemberToAdmin(organization.id, memberToPromote.id)
-      setSuccess(`${memberToPromote.displayName || memberToPromote.email} is now an admin`)
+      const success = await demoteMemberToTeacher(organization.id, memberToDemote.id)
+      if (!success) {
+        setError("Failed to demote member")
+        return
+      }
+
+      setSuccess(`${memberToDemote.displayName || memberToDemote.email} is now a teacher`)
       await loadMembers()
       setTimeout(() => setSuccess(""), 3000)
     } catch (err) {
-      setError("Failed to promote member")
+      setError("Failed to demote member")
     } finally {
-      setMemberToPromote(null)
+      setMemberToDemote(null)
     }
   }
 
@@ -154,8 +161,8 @@ export default function OrgMembersPage() {
 
   const formatDate = (timestamp: any) => {
     if (!timestamp) return "N/A"
-    const date = timestamp.seconds 
-      ? new Date(timestamp.seconds * 1000) 
+    const date = timestamp.seconds
+      ? new Date(timestamp.seconds * 1000)
       : new Date(timestamp)
     return date.toLocaleDateString()
   }
@@ -171,8 +178,7 @@ export default function OrgMembersPage() {
     )
   }
 
-  // Check if user is admin
-  if (userData?.organizationRole !== 'admin') {
+  if (!organization?.id) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
         <Header />
@@ -180,13 +186,12 @@ export default function OrgMembersPage() {
           <Card className="max-w-md mx-auto">
             <CardContent className="pt-6 text-center">
               <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
+              <h2 className="text-xl font-semibold mb-2">No Organization Found</h2>
               <p className="text-muted-foreground mb-4">
-                Only organization admins can manage members.
+                Join an organization to view team members.
               </p>
-              <Button onClick={() => router.push('/dashboard')}>
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Dashboard
+              <Button onClick={() => router.push('/onboarding')} variant="outline">
+                Join Organization
               </Button>
             </CardContent>
           </Card>
@@ -210,7 +215,7 @@ export default function OrgMembersPage() {
                 Team Members
               </h1>
               <p className="text-muted-foreground">
-                Manage your organization's teachers and admins
+                {isOrgAdmin ? "Manage your organization's teachers and admins" : "View your organization's members"}
               </p>
             </div>
           </div>
@@ -237,6 +242,13 @@ export default function OrgMembersPage() {
         {error && (
           <Alert variant="destructive" className="mb-6 animate-slide-up">
             <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+        {!isOrgAdmin && (
+          <Alert className="mb-6 bg-blue-50 border-blue-200 text-blue-800 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-300">
+            <AlertDescription>
+              You have read-only access. Only organization admins can promote or remove members.
+            </AlertDescription>
           </Alert>
         )}
 
@@ -285,7 +297,7 @@ export default function OrgMembersPage() {
                       <TableHead>Role</TableHead>
                       <TableHead className="hidden md:table-cell">Joined</TableHead>
                       <TableHead className="hidden md:table-cell">Last Active</TableHead>
-                      <TableHead className="w-[50px]"></TableHead>
+                      {isOrgAdmin && <TableHead className="w-[50px]"></TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -306,10 +318,10 @@ export default function OrgMembersPage() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge 
+                          <Badge
                             variant={member.organizationRole === 'admin' ? 'default' : 'secondary'}
-                            className={member.organizationRole === 'admin' 
-                              ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400' 
+                            className={member.organizationRole === 'admin'
+                              ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400'
                               : ''
                             }
                           >
@@ -329,32 +341,34 @@ export default function OrgMembersPage() {
                         <TableCell className="hidden md:table-cell text-muted-foreground">
                           {formatDate(member.lastLoginAt)}
                         </TableCell>
-                        <TableCell>
-                          {member.id !== user?.uid && (
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm">
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                {member.organizationRole !== 'admin' && (
-                                  <DropdownMenuItem onClick={() => setMemberToPromote(member)}>
-                                    <ShieldCheck className="h-4 w-4 mr-2" />
-                                    Make Admin
+                        {isOrgAdmin && (
+                          <TableCell>
+                            {member.id !== user?.uid && (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="sm">
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  {member.organizationRole === 'admin' && member.id !== organization?.adminId && (
+                                    <DropdownMenuItem onClick={() => setMemberToDemote(member)}>
+                                      <Users className="h-4 w-4 mr-2" />
+                                      Make Teacher
+                                    </DropdownMenuItem>
+                                  )}
+                                  <DropdownMenuItem
+                                    onClick={() => setMemberToRemove(member)}
+                                    className="text-red-600 dark:text-red-400"
+                                  >
+                                    <UserMinus className="h-4 w-4 mr-2" />
+                                    Remove
                                   </DropdownMenuItem>
-                                )}
-                                <DropdownMenuItem 
-                                  onClick={() => setMemberToRemove(member)}
-                                  className="text-red-600 dark:text-red-400"
-                                >
-                                  <UserMinus className="h-4 w-4 mr-2" />
-                                  Remove
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          )}
-                        </TableCell>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))}
                   </TableBody>
@@ -371,13 +385,13 @@ export default function OrgMembersPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Remove Member</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to remove {memberToRemove?.displayName || memberToRemove?.email} from the organization? 
+              Are you sure you want to remove {memberToRemove?.displayName || memberToRemove?.email} from the organization?
               They will lose access to all organization data.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={handleRemoveMember}
               className="bg-red-600 hover:bg-red-700"
             >
@@ -387,23 +401,23 @@ export default function OrgMembersPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Promote Member Dialog */}
-      <AlertDialog open={!!memberToPromote} onOpenChange={() => setMemberToPromote(null)}>
+      {/* Demote Member Dialog */}
+      <AlertDialog open={!!memberToDemote} onOpenChange={() => setMemberToDemote(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Promote to Admin</AlertDialogTitle>
+            <AlertDialogTitle>Change Role to Teacher</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to make {memberToPromote?.displayName || memberToPromote?.email} an admin? 
-              They will be able to manage organization settings and members.
+              Are you sure you want to change {memberToDemote?.displayName || memberToDemote?.email} to teacher?
+              They will lose organization admin permissions.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handlePromoteMember}
-              className="bg-purple-600 hover:bg-purple-700"
+            <AlertDialogAction
+              onClick={handleDemoteMember}
+              className="bg-amber-600 hover:bg-amber-700"
             >
-              Promote
+              Make Teacher
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

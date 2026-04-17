@@ -10,6 +10,16 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Progress } from "@/components/ui/progress"
 import {
   User,
@@ -28,9 +38,11 @@ import {
   Shield,
   Phone,
   Briefcase,
+  UserMinus,
 } from "lucide-react"
 import { useAuth } from "@/lib/firebase/AuthContext"
 import { getUserAttendanceHistory, updateUser, getUserActivityLogs, ActivityLog } from "@/lib/firebase/firestore"
+import { removeMemberFromOrganization } from "@/lib/firebase/organizations"
 import Header from "@/components/header"
 
 interface AttendanceRecord {
@@ -59,6 +71,8 @@ export default function ProfilePage() {
   } | null>(null)
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([])
   const [loadingData, setLoadingData] = useState(true)
+  const [showLeaveDialog, setShowLeaveDialog] = useState(false)
+  const [isLeavingOrg, setIsLeavingOrg] = useState(false)
 
   // Form state for editing
   const [formData, setFormData] = useState({
@@ -137,6 +151,41 @@ export default function ProfilePage() {
   const calculateAttendancePercentage = () => {
     if (!attendanceData || attendanceData.totalDays === 0) return 0
     return Math.round((attendanceData.presentDays / attendanceData.totalDays) * 100)
+  }
+
+  const handleLeaveOrganization = async () => {
+    if (!user?.uid || !organization?.id) return
+
+    if (userData?.organizationRole === "admin") {
+      setSaveMessage({
+        type: "error",
+        text: "Organization admins cannot leave directly. Transfer or remove admin access first.",
+      })
+      setShowLeaveDialog(false)
+      return
+    }
+
+    setIsLeavingOrg(true)
+    setSaveMessage(null)
+
+    try {
+      const success = await removeMemberFromOrganization(organization.id, user.uid)
+
+      if (!success) {
+        setSaveMessage({ type: "error", text: "Failed to leave organization. Please try again." })
+        return
+      }
+
+      await refreshUserData()
+      setSaveMessage({ type: "success", text: "You have left the organization successfully." })
+      setShowLeaveDialog(false)
+      router.push("/onboarding")
+    } catch (error) {
+      console.error("Error leaving organization:", error)
+      setSaveMessage({ type: "error", text: "Failed to leave organization. Please try again." })
+    } finally {
+      setIsLeavingOrg(false)
+    }
   }
 
   const formatTimestamp = (timestamp: any) => {
@@ -366,6 +415,23 @@ export default function ProfilePage() {
                       {userData?.role || "Teacher"}
                     </p>
                   </div>
+                  {organization && userData?.organizationRole === "teacher" && (
+                    <div className="pt-2">
+                      <Button
+                        variant="destructive"
+                        className="w-full"
+                        onClick={() => setShowLeaveDialog(true)}
+                        disabled={isLeavingOrg}
+                      >
+                        {isLeavingOrg ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <UserMinus className="h-4 w-4 mr-2" />
+                        )}
+                        Leave Organization
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -471,11 +537,10 @@ export default function ProfilePage() {
                             </div>
                           </div>
                           <Badge
-                            className={`mt-2 md:mt-0 ${
-                              record.status === 'present'
+                            className={`mt-2 md:mt-0 ${record.status === 'present'
                                 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
                                 : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                            }`}
+                              }`}
                           >
                             {record.status === 'present' ? 'Present' : 'Absent'}
                           </Badge>
@@ -561,6 +626,27 @@ export default function ProfilePage() {
           </TabsContent>
         </Tabs>
       </main>
+
+      <AlertDialog open={showLeaveDialog} onOpenChange={setShowLeaveDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Leave Organization?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You are about to leave {organization?.name}. You will lose access to organization data until you join again with an invite code.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isLeavingOrg}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleLeaveOrganization}
+              disabled={isLeavingOrg}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isLeavingOrg ? "Leaving..." : "Leave Organization"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

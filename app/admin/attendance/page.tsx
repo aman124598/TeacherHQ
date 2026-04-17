@@ -39,6 +39,7 @@ import {
 import Link from "next/link"
 import { getAllUsers, getAllAttendance } from "@/lib/firebase/firestore"
 import { UserData } from "@/lib/firebase/auth"
+import { useAuth } from "@/lib/firebase/AuthContext"
 
 interface AttendanceRecord {
   id: string
@@ -62,6 +63,7 @@ interface AttendanceRecord {
 }
 
 export default function AdminAttendancePage() {
+  const { organization } = useAuth()
   const [loading, setLoading] = useState(true)
   const [users, setUsers] = useState<UserData[]>([])
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([])
@@ -75,14 +77,22 @@ export default function AdminAttendancePage() {
 
   useEffect(() => {
     loadData()
-  }, [])
+  }, [organization?.id])
 
   const loadData = async () => {
     setLoading(true)
     try {
+      if (!organization?.id) {
+        setUsers([])
+        setAttendance([])
+        setFlattenedRecords([])
+        setLoading(false)
+        return
+      }
+
       const [usersData, attendanceData] = await Promise.all([
-        getAllUsers(),
-        getAllAttendance()
+        getAllUsers(organization.id),
+        getAllAttendance(organization.id)
       ])
 
       setUsers(usersData)
@@ -90,20 +100,20 @@ export default function AdminAttendancePage() {
 
       // Flatten records for table display
       const flattened: any[] = []
-      ;(attendanceData as AttendanceRecord[]).forEach((att) => {
-        const user = usersData.find(u => u.uid === att.id)
-        if (att.records && Array.isArray(att.records)) {
-          att.records.forEach((record: any) => {
-            flattened.push({
-              ...record,
-              userId: att.id,
-              userName: user?.displayName || 'Unknown',
-              userEmail: user?.email || '',
-              userPhoto: (user as any)?.photoURL || null,
+        ; (attendanceData as AttendanceRecord[]).forEach((att) => {
+          const user = usersData.find(u => u.uid === att.id)
+          if (att.records && Array.isArray(att.records)) {
+            att.records.forEach((record: any) => {
+              flattened.push({
+                ...record,
+                userId: att.id,
+                userName: user?.displayName || 'Unknown',
+                userEmail: user?.email || '',
+                userPhoto: (user as any)?.photoURL || null,
+              })
             })
-          })
-        }
-      })
+          }
+        })
 
       // Sort by date descending
       flattened.sort((a, b) => {
@@ -128,7 +138,7 @@ export default function AdminAttendancePage() {
   const getFilteredRecords = () => {
     return flattenedRecords.filter(record => {
       // Search filter
-      const matchesSearch = 
+      const matchesSearch =
         record.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         record.userEmail.toLowerCase().includes(searchTerm.toLowerCase())
 

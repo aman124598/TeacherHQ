@@ -1,12 +1,12 @@
-import { 
-  getFirestore, 
-  collection, 
-  doc, 
-  getDoc, 
-  getDocs, 
-  setDoc, 
-  updateDoc, 
-  query, 
+import {
+  getFirestore,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+  updateDoc,
+  query,
   where,
   addDoc,
   deleteDoc,
@@ -28,11 +28,13 @@ const getDb = (): Firestore => {
 
 // --- User Management ---
 
-export const getAllTeachers = async (): Promise<UserData[]> => {
+export const getAllTeachers = async (organizationId?: string): Promise<UserData[]> => {
   try {
     const db = getDb();
     const usersRef = collection(db, 'users');
-    const q = query(usersRef, where('role', '==', 'teacher'));
+    const q = organizationId
+      ? query(usersRef, where('role', '==', 'teacher'), where('organizationId', '==', organizationId))
+      : query(usersRef, where('role', '==', 'teacher'));
     const snapshot = await getDocs(q);
     console.log('Fetched teachers from Firebase:', snapshot.docs.length);
     return snapshot.docs.map(d => ({
@@ -45,19 +47,21 @@ export const getAllTeachers = async (): Promise<UserData[]> => {
   }
 };
 
-export const getAllUsers = async (): Promise<UserData[]> => {
+export const getAllUsers = async (organizationId?: string): Promise<UserData[]> => {
   try {
     const db = getDb();
     const usersRef = collection(db, 'users');
     console.log('Attempting to fetch users from Firebase...');
-    const snapshot = await getDocs(usersRef);
+    const snapshot = organizationId
+      ? await getDocs(query(usersRef, where('organizationId', '==', organizationId)))
+      : await getDocs(usersRef);
     console.log('Fetched users from Firebase:', snapshot.docs.length);
-    
+
     // Log each user for debugging
     snapshot.docs.forEach(d => {
       console.log('User found:', d.id, d.data().email);
     });
-    
+
     return snapshot.docs.map(d => ({
       uid: d.id,
       ...d.data()
@@ -74,7 +78,7 @@ export const createUserIfNotExists = async (userData: UserData): Promise<{ succe
     const db = getDb();
     const userRef = doc(db, 'users', userData.uid);
     const userSnap = await getDoc(userRef);
-    
+
     if (!userSnap.exists()) {
       await setDoc(userRef, {
         ...userData,
@@ -82,9 +86,9 @@ export const createUserIfNotExists = async (userData: UserData): Promise<{ succe
         lastLoginAt: Timestamp.now()
       });
       console.log('Created new user in Firestore:', userData.uid);
-    return { success: true, created: true };
+      return { success: true, created: true };
     }
-    
+
     // Update last login
     await updateDoc(userRef, { lastLoginAt: Timestamp.now() });
     return { success: true, created: false };
@@ -93,8 +97,6 @@ export const createUserIfNotExists = async (userData: UserData): Promise<{ succe
     return { success: false, created: false };
   }
 };
-
-// --- Schedule Management ---
 
 export interface ScheduleData {
   userId: string;
@@ -110,7 +112,7 @@ export const getTeacherSchedule = async (userId: string): Promise<ScheduleData |
     const db = getDb();
     const docRef = doc(db, 'schedules', userId);
     const docSnap = await getDoc(docRef);
-    
+
     if (docSnap.exists()) {
       return docSnap.data() as ScheduleData;
     }
@@ -141,6 +143,7 @@ export const updateTeacherSchedule = async (userId: string, scheduleData: any) =
 
 export interface TaskData {
   id?: string;
+  organizationId?: string;
   title: string;
   description: string;
   assignedTo: string | 'all';
@@ -186,11 +189,11 @@ export const getAttendanceStats = async (userId: string) => {
     const db = getDb();
     const docRef = doc(db, 'attendance', userId);
     const docSnap = await getDoc(docRef);
-    
+
     if (docSnap.exists()) {
       return docSnap.data();
     }
-    
+
     return {
       present: 0,
       absent: 0,
@@ -337,14 +340,14 @@ export const deleteUser = async (userId: string) => {
     // Delete user document
     const userRef = doc(db, 'users', userId);
     await deleteDoc(userRef);
-    
+
     // Also delete related data
     const scheduleRef = doc(db, 'schedules', userId);
-    await deleteDoc(scheduleRef).catch(() => {});
-    
+    await deleteDoc(scheduleRef).catch(() => { });
+
     const attendanceDocRef = doc(db, 'attendance', userId);
-    await deleteDoc(attendanceDocRef).catch(() => {});
-    
+    await deleteDoc(attendanceDocRef).catch(() => { });
+
     return { success: true };
   } catch (error) {
     console.error('Error deleting user:', error);
@@ -369,11 +372,13 @@ export const getUserById = async (userId: string): Promise<UserData | null> => {
 
 // --- Admin Task Management ---
 
-export const getAllTasks = async (): Promise<TaskData[]> => {
+export const getAllTasks = async (organizationId?: string): Promise<TaskData[]> => {
   try {
     const db = getDb();
     const tasksRef = collection(db, 'tasks');
-    const snapshot = await getDocs(tasksRef);
+    const snapshot = organizationId
+      ? await getDocs(query(tasksRef, where('organizationId', '==', organizationId)))
+      : await getDocs(tasksRef);
     return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as TaskData));
   } catch (error) {
     console.error('Error fetching all tasks:', error);
@@ -528,11 +533,13 @@ export const updateAttendance = async (userId: string, attendanceData: any) => {
   }
 };
 
-export const getAllAttendance = async () => {
+export const getAllAttendance = async (organizationId?: string) => {
   try {
     const db = getDb();
     const attendanceRef = collection(db, 'attendance');
-    const snapshot = await getDocs(attendanceRef);
+    const snapshot = organizationId
+      ? await getDocs(query(attendanceRef, where('organizationId', '==', organizationId)))
+      : await getDocs(attendanceRef);
     return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
   } catch (error) {
     console.error('Error fetching all attendance:', error);
@@ -560,7 +567,7 @@ export const getUserAttendanceHistory = async (userId: string) => {
     const db = getDb();
     const docRef = doc(db, 'attendance', userId);
     const docSnap = await getDoc(docRef);
-    
+
     if (docSnap.exists()) {
       const data = docSnap.data();
       return {
@@ -571,7 +578,7 @@ export const getUserAttendanceHistory = async (userId: string) => {
         lastMarked: data.lastMarked,
       };
     }
-    
+
     return {
       presentDays: 0,
       absentDays: 0,
@@ -629,9 +636,9 @@ export const getUserActivityLogs = async (userId: string, limit: number = 50) =>
     const logsRef = collection(db, 'activity_logs');
     const q = query(logsRef, where('userId', '==', userId));
     const snapshot = await getDocs(q);
-    
+
     const logs = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as ActivityLog));
-    
+
     // Sort by timestamp descending and limit
     return logs
       .sort((a, b) => {
@@ -653,9 +660,9 @@ export const getOrganizationActivityLogs = async (organizationId: string, limit:
     const logsRef = collection(db, 'activity_logs');
     const q = query(logsRef, where('organizationId', '==', organizationId));
     const snapshot = await getDocs(q);
-    
+
     const logs = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as ActivityLog));
-    
+
     // Sort by timestamp descending and limit
     return logs
       .sort((a, b) => {
@@ -769,10 +776,10 @@ export const getOrganizationLeaves = async (organizationId: string): Promise<Lea
     const leavesRef = collection(db, 'leaves');
     const q = query(leavesRef, where('organizationId', '==', organizationId));
     const snapshot = await getDocs(q);
-    
+
     // Manual sorting inside array since Firebase needs a composite index if we combine where and orderBy 
     const leaves = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as LeaveData));
-    return leaves.sort((a,b) => {
+    return leaves.sort((a, b) => {
       const timeA = a.appliedAt?.seconds || 0;
       const timeB = b.appliedAt?.seconds || 0;
       return timeB - timeA;

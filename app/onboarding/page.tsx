@@ -8,30 +8,37 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { 
-  Building2, 
-  Users, 
-  ArrowRight, 
+import { Badge } from "@/components/ui/badge"
+import {
+  Building2,
+  Users,
+  ArrowRight,
   ArrowLeft,
   MapPin,
   CheckCircle,
   Sparkles,
   Shield,
   ClipboardList,
-  Globe
+  Globe,
+  Search
 } from "lucide-react"
 import { useAuth } from "@/lib/firebase/AuthContext"
-import { createOrganization, joinOrganization, userHasOrganization } from "@/lib/firebase/organizations"
+import { updateUser } from "@/lib/firebase/firestore"
+import { createOrganization, getMarketplaceOrganizations, joinOrganization, joinOrganizationById, MarketplaceOrganization, userHasOrganization } from "@/lib/firebase/organizations"
 
-type OnboardingStep = 'choice' | 'create' | 'join' | 'success'
+type OnboardingStep = 'role' | 'choice' | 'create' | 'join' | 'success'
 
 export default function OnboardingPage() {
   const router = useRouter()
   const { user, userData, loading, refreshUserData } = useAuth()
-  const [step, setStep] = useState<OnboardingStep>('choice')
+  const [step, setStep] = useState<OnboardingStep>('role')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState("")
   const [successOrg, setSuccessOrg] = useState<any>(null)
+  const [marketplaceOrgs, setMarketplaceOrgs] = useState<MarketplaceOrganization[]>([])
+  const [marketplaceQuery, setMarketplaceQuery] = useState("")
+  const [selectedMarketplaceOrg, setSelectedMarketplaceOrg] = useState<MarketplaceOrganization | null>(null)
+  const [joiningOrgId, setJoiningOrgId] = useState<string | null>(null)
 
   // Create organization form
   const [orgName, setOrgName] = useState("")
@@ -44,6 +51,18 @@ export default function OnboardingPage() {
   const [inviteCode, setInviteCode] = useState("")
 
   useEffect(() => {
+    if (!userData) return
+
+    if (userData.organizationRolePreference === 'admin') {
+      setStep('create')
+    } else if (userData.organizationRolePreference === 'teacher') {
+      setStep('choice')
+    } else {
+      setStep('role')
+    }
+  }, [userData])
+
+  useEffect(() => {
     // Check if user already has an organization
     const checkOrg = async () => {
       if (user?.uid) {
@@ -53,11 +72,31 @@ export default function OnboardingPage() {
         }
       }
     }
-    
+
     if (!loading && user) {
       checkOrg()
     }
   }, [user, loading, router])
+
+  useEffect(() => {
+    const loadMarketplace = async () => {
+      const orgs = await getMarketplaceOrganizations()
+      setMarketplaceOrgs(orgs)
+    }
+
+    if (!loading && user) {
+      loadMarketplace()
+    }
+  }, [loading, user])
+
+  const filteredMarketplaceOrgs = marketplaceOrgs.filter((org) => {
+    const query = marketplaceQuery.trim().toLowerCase()
+    if (!query) return true
+
+    return [org.name, org.city, org.state, org.country]
+      .filter(Boolean)
+      .some((value) => String(value).toLowerCase().includes(query))
+  })
 
   const handleCreateOrganization = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -127,6 +166,58 @@ export default function OnboardingPage() {
     }
   }
 
+  const handleRoleSelection = async (role: 'admin' | 'teacher') => {
+    if (!user?.uid) return
+
+    setError("")
+    setIsSubmitting(true)
+
+    try {
+      const result = await updateUser(user.uid, { organizationRolePreference: role } as any)
+      if (!result.success) {
+        setError("Failed to save your role selection. Please try again.")
+        return
+      }
+
+      await refreshUserData()
+      setStep(role === 'admin' ? 'create' : 'choice')
+    } catch (err) {
+      console.error('Error saving role selection:', err)
+      setError("Failed to save your role selection. Please try again.")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleMarketplaceDirectJoin = async (org: MarketplaceOrganization) => {
+    if (!user?.uid) return
+
+    setError("")
+    setJoiningOrgId(org.id)
+
+    try {
+      const result = await joinOrganizationById(
+        user.uid,
+        user.email || '',
+        userData?.displayName || '',
+        org.id
+      )
+
+      if (result.success && result.organization) {
+        await refreshUserData()
+        setSuccessOrg(result.organization)
+        setStep('success')
+      } else {
+        setError(result.error || "Failed to join organization")
+      }
+    } catch (err: any) {
+      console.error('Error joining organization from marketplace:', err)
+      setError("Failed to join organization. Please try again.")
+    } finally {
+      setJoiningOrgId(null)
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-purple-50 to-blue-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800">
@@ -162,6 +253,7 @@ export default function OnboardingPage() {
             Welcome to Attendance System
           </h1>
           <p className="text-muted-foreground mt-2 text-lg">
+            {step === 'role' && "Tell us your role to personalize onboarding"}
             {step === 'choice' && "Let's get you set up with your organization"}
             {step === 'create' && "Create a new organization for your team"}
             {step === 'join' && "Join an existing organization"}
@@ -169,80 +261,199 @@ export default function OnboardingPage() {
           </p>
         </div>
 
+        {/* Role Step */}
+        {step === 'role' && (
+          <Card className="max-w-2xl mx-auto shadow-2xl dark:bg-slate-800/90 backdrop-blur-sm border-0 animate-slide-in-right">
+            <CardHeader className="text-center">
+              <CardTitle className="text-2xl">Choose Your Role</CardTitle>
+              <CardDescription>
+                This helps us show the right setup flow first.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {error && (
+                <Alert variant="destructive" className="animate-slide-up">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <Button
+                  type="button"
+                  onClick={() => handleRoleSelection('teacher')}
+                  disabled={isSubmitting}
+                  variant="outline"
+                  className="h-24 border-2 border-teal-400 text-teal-700 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-900/20"
+                >
+                  <div className="text-center">
+                    <p className="font-semibold text-base">Teacher</p>
+                    <p className="text-xs text-muted-foreground mt-1">Join an organization with invite code</p>
+                  </div>
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => handleRoleSelection('admin')}
+                  disabled={isSubmitting}
+                  className="h-24 bg-gradient-to-r from-purple-600 to-blue-600 hover:opacity-90"
+                >
+                  <div className="text-center">
+                    <p className="font-semibold text-base">Admin</p>
+                    <p className="text-xs text-white/90 mt-1">Create and manage an organization</p>
+                  </div>
+                </Button>
+              </div>
+
+              {isSubmitting && (
+                <div className="text-center text-sm text-muted-foreground">Saving your preference...</div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Choice Step */}
         {step === 'choice' && (
-          <div className="grid md:grid-cols-2 gap-6 animate-slide-in-right">
-            {/* Create Organization Card */}
-            <Card 
-              className="group cursor-pointer hover:shadow-2xl transition-all duration-300 border-2 hover:border-purple-400 dark:bg-slate-800/80 backdrop-blur-sm overflow-hidden"
-              onClick={() => setStep('create')}
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-blue-500/5 group-hover:from-purple-500/10 group-hover:to-blue-500/10 transition-colors"></div>
-              <CardHeader className="relative">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-r from-purple-600 to-blue-600 flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform">
-                  <Building2 className="h-8 w-8 text-white" />
-                </div>
-                <CardTitle className="text-2xl">Create Organization</CardTitle>
-                <CardDescription className="text-base">
-                  Start fresh with your own organization. Perfect for school administrators and team leads.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="relative">
-                <div className="space-y-3">
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <Shield className="h-4 w-4 mr-2 text-purple-500" />
-                    Full admin control
+          <div className="space-y-6 animate-slide-in-right">
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Create Organization Card */}
+              <Card
+                className="group cursor-pointer hover:shadow-2xl transition-all duration-300 border-2 hover:border-purple-400 dark:bg-slate-800/80 backdrop-blur-sm overflow-hidden"
+                onClick={() => setStep('create')}
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-blue-500/5 group-hover:from-purple-500/10 group-hover:to-blue-500/10 transition-colors"></div>
+                <CardHeader className="relative">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-r from-purple-600 to-blue-600 flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform">
+                    <Building2 className="h-8 w-8 text-white" />
                   </div>
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <Users className="h-4 w-4 mr-2 text-blue-500" />
-                    Invite unlimited teachers
+                  <CardTitle className="text-2xl">Create Organization</CardTitle>
+                  <CardDescription className="text-base">
+                    Start fresh with your own organization. Perfect for school administrators and team leads.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="relative">
+                  <div className="space-y-3">
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <Shield className="h-4 w-4 mr-2 text-purple-500" />
+                      Full admin control
+                    </div>
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <Users className="h-4 w-4 mr-2 text-blue-500" />
+                      Invite unlimited teachers
+                    </div>
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <ClipboardList className="h-4 w-4 mr-2 text-teal-500" />
+                      Manage attendance & schedules
+                    </div>
                   </div>
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <ClipboardList className="h-4 w-4 mr-2 text-teal-500" />
-                    Manage attendance & schedules
-                  </div>
-                </div>
-                <Button className="w-full mt-6 bg-gradient-to-r from-purple-600 to-blue-600 hover:opacity-90 group-hover:shadow-lg transition-all">
-                  Get Started
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </CardContent>
-            </Card>
+                  <Button className="w-full mt-6 bg-gradient-to-r from-purple-600 to-blue-600 hover:opacity-90 group-hover:shadow-lg transition-all">
+                    Get Started
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </CardContent>
+              </Card>
 
-            {/* Join Organization Card */}
-            <Card 
-              className="group cursor-pointer hover:shadow-2xl transition-all duration-300 border-2 hover:border-teal-400 dark:bg-slate-800/80 backdrop-blur-sm overflow-hidden"
-              onClick={() => setStep('join')}
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-teal-500/5 to-green-500/5 group-hover:from-teal-500/10 group-hover:to-green-500/10 transition-colors"></div>
-              <CardHeader className="relative">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-r from-teal-600 to-green-600 flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform">
-                  <Users className="h-8 w-8 text-white" />
-                </div>
-                <CardTitle className="text-2xl">Join Organization</CardTitle>
-                <CardDescription className="text-base">
-                  Already have an invite code? Join your organization in seconds.
+              {/* Join Organization Card */}
+              <Card
+                className="group cursor-pointer hover:shadow-2xl transition-all duration-300 border-2 hover:border-teal-400 dark:bg-slate-800/80 backdrop-blur-sm overflow-hidden"
+                onClick={() => setStep('join')}
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-teal-500/5 to-green-500/5 group-hover:from-teal-500/10 group-hover:to-green-500/10 transition-colors"></div>
+                <CardHeader className="relative">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-r from-teal-600 to-green-600 flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform">
+                    <Users className="h-8 w-8 text-white" />
+                  </div>
+                  <CardTitle className="text-2xl">Join Organization</CardTitle>
+                  <CardDescription className="text-base">
+                    Already have an invite code? Join your organization in seconds.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="relative">
+                  <div className="space-y-3">
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <Sparkles className="h-4 w-4 mr-2 text-teal-500" />
+                      Quick one-step joining
+                    </div>
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <MapPin className="h-4 w-4 mr-2 text-green-500" />
+                      Location-based attendance
+                    </div>
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <Globe className="h-4 w-4 mr-2 text-blue-500" />
+                      Access from anywhere
+                    </div>
+                  </div>
+                  <Button variant="outline" className="w-full mt-6 border-2 border-teal-400 text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/20 group-hover:shadow-lg transition-all">
+                    Enter Invite Code
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card className="dark:bg-slate-800/80 backdrop-blur-sm border-2 border-slate-200/70 dark:border-slate-700/60">
+              <CardHeader>
+                <CardTitle className="text-2xl flex items-center gap-2">
+                  <Globe className="h-6 w-6 text-blue-600" />
+                  Organization Marketplace
+                </CardTitle>
+                <CardDescription>
+                  Browse organizations on the platform and join instantly.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="relative">
-                <div className="space-y-3">
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <Sparkles className="h-4 w-4 mr-2 text-teal-500" />
-                    Quick one-step joining
-                  </div>
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <MapPin className="h-4 w-4 mr-2 text-green-500" />
-                    Location-based attendance
-                  </div>
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <Globe className="h-4 w-4 mr-2 text-blue-500" />
-                    Access from anywhere
-                  </div>
+              <CardContent className="space-y-4">
+                {error && (
+                  <Alert variant="destructive" className="animate-slide-up">
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search organizations by name or location"
+                    value={marketplaceQuery}
+                    onChange={(e) => setMarketplaceQuery(e.target.value)}
+                    className="pl-10 h-11"
+                  />
                 </div>
-                <Button variant="outline" className="w-full mt-6 border-2 border-teal-400 text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/20 group-hover:shadow-lg transition-all">
-                  Enter Invite Code
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
+
+                <div className="grid gap-3 max-h-72 overflow-y-auto pr-1">
+                  {filteredMarketplaceOrgs.length === 0 ? (
+                    <div className="text-center py-8 rounded-lg border border-dashed dark:border-slate-700">
+                      <p className="text-sm text-muted-foreground">No organizations found for your search.</p>
+                    </div>
+                  ) : (
+                    filteredMarketplaceOrgs.slice(0, 20).map((org) => (
+                      <div
+                        key={org.id}
+                        className="rounded-xl border dark:border-slate-700 p-4 bg-white/70 dark:bg-slate-900/40 flex flex-col md:flex-row md:items-center md:justify-between gap-3"
+                      >
+                        <div>
+                          <p className="font-semibold text-base">{org.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {[org.city, org.state, org.country].filter(Boolean).join(", ") || "Location not specified"}
+                          </p>
+                          <div className="mt-2 flex items-center gap-2">
+                            <Badge variant="secondary" className="text-xs">
+                              {org.memberCount} member{org.memberCount === 1 ? "" : "s"}
+                            </Badge>
+                            <Badge variant="outline" className="text-xs uppercase">
+                              {org.plan || "starter"}
+                            </Badge>
+                          </div>
+                        </div>
+                        <Button
+                          variant="outline"
+                          className="border-teal-400 text-teal-700 hover:bg-teal-50 dark:hover:bg-teal-900/20"
+                          onClick={() => handleMarketplaceDirectJoin(org)}
+                          disabled={joiningOrgId === org.id || isSubmitting}
+                        >
+                          {joiningOrgId === org.id ? 'Joining...' : 'Join Now'}
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))
+                  )}
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -382,6 +593,14 @@ export default function OnboardingPage() {
                 {error && (
                   <Alert variant="destructive" className="animate-slide-up">
                     <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+
+                {selectedMarketplaceOrg && (
+                  <Alert className="bg-blue-50 border-blue-200 text-blue-800 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-300">
+                    <AlertDescription>
+                      Joining: <span className="font-semibold">{selectedMarketplaceOrg.name}</span>. Ask their admin for the invite code.
+                    </AlertDescription>
                   </Alert>
                 )}
 

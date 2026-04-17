@@ -1,6 +1,7 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 
 // Firebase configuration - uses environment variables (required)
+// Next.js uses process.env.NEXT_PUBLIC_*, Expo uses Constants.expoConfig?.extra?
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -11,8 +12,30 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
+// --- Cross-Platform Environment Injection ---
+// For React Native (Expo), if process.env is empty, we try to get from Expo Constants
+if (!firebaseConfig.apiKey) {
+    try {
+        // Dynamic import to avoid breaking web builds
+        const Constants = require('expo-constants').default;
+        const extra = Constants.expoConfig?.extra || {};
+        if (extra.firebaseApiKey) {
+            firebaseConfig.apiKey = extra.firebaseApiKey;
+            firebaseConfig.authDomain = extra.firebaseAuthDomain;
+            firebaseConfig.projectId = extra.firebaseProjectId;
+            firebaseConfig.storageBucket = extra.firebaseStorageBucket;
+            firebaseConfig.messagingSenderId = extra.firebaseMessagingSenderId;
+            firebaseConfig.appId = extra.firebaseAppId;
+            firebaseConfig.measurementId = extra.firebaseMeasurementId;
+        }
+    } catch (e) {
+        // Not in an Expo environment or expo-constants not available
+    }
+}
+
 // Validate required environment variables (Static check required for Next.js Webpack)
-if (typeof window !== 'undefined') {
+// Only warn on Web if missing, Native will handle its own errors
+if (typeof window !== 'undefined' && !firebaseConfig.apiKey) {
   const missingVars = [];
   if (!process.env.NEXT_PUBLIC_FIREBASE_API_KEY) missingVars.push('NEXT_PUBLIC_FIREBASE_API_KEY');
   if (!process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN) missingVars.push('NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN');

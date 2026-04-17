@@ -1,0 +1,48 @@
+{
+  "expo": {
+    "name": "mobile",
+    "slug": "teacherhq-mobile",
+    "owner": "amanzzz",
+    "scheme": "teacherhq",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.app.teacherhq",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "firebaseApiKey": "AIzaSyDqhM42m3frmjHTD78GEYP2_GYJYEGyNJ8",
+      "firebaseAuthDomain": "attendence-f72d7.firebaseapp.com",
+      "firebaseProjectId": "attendence-f72d7",
+      "firebaseStorageBucket": "attendence-f72d7.firebasestorage.app",
+      "firebaseMessagingSenderId": "70105143544",
+      "firebaseAppId": "1:70105143544:web:ab67bb71e73cdc210a430d",
+      "firebaseMeasurementId": "G-SSCKVP0G1R",
+      "googleAndroidClientId": "70105143544-p88h3s6u967p00n90bkgc8m8r9h4e8qg.apps.googleusercontent.com",
+      "googleIosClientId": "70105143544-v0m0h3s6u967p00n90bkgc8m8r9h4e8qg.apps.googleusercontent.com",
+      "googleWebClientId": "70105143544-ab67bb71e73cdc210a430d.apps.googleusercontent.com",
+      "googleExpoClientId": "70105143544-ab67bb71e73cdc210a430d.apps.googleusercontent.com"
+    },
+    "plugins": [
+      "expo-asset"
+    ]
+  }
+}

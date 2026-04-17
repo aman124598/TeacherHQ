@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Users, Calendar, CheckSquare, BarChart4, LogOut, ArrowLeft, Clock } from "lucide-react"
+import { LayoutDashboard, Users, Calendar, CheckSquare, BarChart4, LogOut, ArrowLeft, Clock, Building2, MapPin } from "lucide-react"
 
 export default function AdminSidebar() {
   const pathname = usePathname()
@@ -35,16 +35,15 @@ export default function AdminSidebar() {
           {links.map((link) => {
             const Icon = link.icon
             const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`)
-            
+
             return (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`flex items-center px-4 py-3 rounded-xl transition-all duration-200 group ${
-                  isActive
+                className={`flex items-center px-4 py-3 rounded-xl transition-all duration-200 group ${isActive
                     ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg shadow-purple-500/25"
                     : "text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700/50"
-                }`}
+                  }`}
               >
                 <Icon className={`w-5 h-5 mr-3 ${isActive ? "text-white" : "text-gray-500 dark:text-slate-500 group-hover:text-purple-600"}`} />
                 <span className="font-medium">{link.label}</span>
@@ -55,7 +54,7 @@ export default function AdminSidebar() {
       </div>
 
       <div className="mt-auto p-6 border-t dark:border-slate-700">
-        <Link 
+        <Link
           href="/dashboard"
           className="flex items-center px-4 py-3 rounded-xl text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-colors"
         >

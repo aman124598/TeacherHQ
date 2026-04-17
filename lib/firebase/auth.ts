@@ -27,6 +27,7 @@ export interface UserData {
   // Organization & Hierarchy fields
   organizationId?: string;
   organizationRole?: 'admin' | 'branch_admin' | 'hod' | 'teacher';
+  organizationRolePreference?: 'admin' | 'teacher';
   organizationName?: string;
   branchId?: string;
   departmentId?: string;
@@ -49,7 +50,14 @@ export const signInWithEmail = async (email: string, password: string) => {
 };
 
 // Sign up with email and password
-export const signUpWithEmail = async (email: string, password: string, displayName: string, teacherId?: string, department?: string) => {
+export const signUpWithEmail = async (
+  email: string,
+  password: string,
+  displayName: string,
+  teacherId?: string,
+  department?: string,
+  organizationRolePreference: 'admin' | 'teacher' = 'teacher'
+) => {
   try {
     const auth = getAuthInstance();
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -58,7 +66,12 @@ export const signUpWithEmail = async (email: string, password: string, displayNa
     await updateProfile(userCredential.user, { displayName });
 
     // Create user document in Firestore
-    await createUserDocument(userCredential.user, { displayName, teacherId, department });
+    await createUserDocument(userCredential.user, {
+      displayName,
+      teacherId,
+      department,
+      organizationRolePreference,
+    });
 
     return { success: true, user: userCredential.user };
   } catch (error: any) {
@@ -66,26 +79,30 @@ export const signUpWithEmail = async (email: string, password: string, displayNa
   }
 };
 
-// Sign in with Google - uses different methods for web vs Capacitor
-export const signInWithGoogle = async () => {
+// Sign in with Google - supports Web, Capacitor, and Expo
+export const signInWithGoogle = async (nativeIdToken?: string, nativeAccessToken?: string) => {
   try {
-    console.log('Starting Google sign-in...'); // DEBUG LOG
     const auth = getAuthInstance();
     const provider = getGoogleProvider();
 
-    // Check if running in Capacitor (mobile app)
+    // 1. If we already have a native ID Token (from Expo or similar), use it directly
+    if (nativeIdToken) {
+      const credential = GoogleAuthProvider.credential(nativeIdToken, nativeAccessToken);
+      const userCredential = await signInWithCredential(auth, credential);
+      await syncUserDocument(userCredential.user);
+      return { success: true, user: userCredential.user };
+    }
+
+    // 2. Check if running in Capacitor (legacy mobile flow)
     const isCapacitor = typeof window !== 'undefined' && !!(window as any).Capacitor;
 
     if (isCapacitor) {
-      console.log('Using Capacitor native Google Sign-In...');
       try {
-        // Dynamically import to avoid breaking web builds
         const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
         let nativeResult;
         try {
           nativeResult = await FirebaseAuthentication.signInWithGoogle();
         } catch (primaryError) {
-          // Retry with Credential Manager disabled for devices where Play Services returns service state errors.
           nativeResult = await FirebaseAuthentication.signInWithGoogle({ useCredentialManager: false });
         }
 
@@ -93,61 +110,35 @@ export const signInWithGoogle = async () => {
           return { success: false, error: 'Google Sign-in failed to retrieve a valid authorization token.' };
         }
 
-        // Pass the native ID token to the web Firebase JS instance
-        const credential = GoogleAuthProvider.credential(nativeResult.credential.idToken);
+        const credential = GoogleAuthProvider.credential(nativeResult.credential.idToken, nativeResult.credential.accessToken);
         const userCredential = await signInWithCredential(auth, credential);
-
-        // Create or update user document in Firestore
-        try {
-          const userDoc = await getDoc(doc(getDbInstance(), 'users', userCredential.user.uid));
-          if (!userDoc.exists()) {
-            await createUserDocument(userCredential.user);
-          } else {
-            await updateUserLastLogin(userCredential.user.uid);
-          }
-        } catch (e) {
-          console.warn('Could not update Firestore user data:', e);
-        }
-
+        await syncUserDocument(userCredential.user);
         return { success: true, user: userCredential.user };
       } catch (e: any) {
-        console.error('Native Google Sign in error:', e);
-        const rawMessage = (e?.message || e?.errorMessage || '').toString();
-        const normalized = rawMessage.toLowerCase();
-
-        if (normalized.includes('service is not active') || normalized.includes('api_exception') || normalized.includes('10')) {
-          return {
-            success: false,
-            error: 'Google Sign-in is not configured for this Android app yet. Add the correct google-services.json for package com.app.teacherhq and SHA-1/SHA-256 fingerprints in Firebase, then rebuild the app.',
-          };
-        }
-
-        return { success: false, error: rawMessage || 'Mobile Google sign-in failed.' };
+        return { success: false, error: e?.message || 'Mobile Google sign-in failed.' };
       }
     }
 
-    // Use popup for web - works better in browsers
-    console.log('Using popup flow for web...');
+    // 3. Default Web Popup Flow
     const result = await signInWithPopup(auth, provider);
-
-    console.log('Google sign-in successful:', result.user.email); // DEBUG LOG
-
-    // Create or update user document in Firestore
-    try {
-      const userDoc = await getDoc(doc(getDbInstance(), 'users', result.user.uid));
-      if (!userDoc.exists()) {
-        await createUserDocument(result.user);
-      } else {
-        await updateUserLastLogin(result.user.uid);
-      }
-    } catch (e) {
-      console.warn('Could not update Firestore user data:', e);
-    }
-
+    await syncUserDocument(result.user);
     return { success: true, user: result.user };
   } catch (error: any) {
-    console.error('Google sign-in error:', error); // DEBUG LOG
     return { success: false, error: getErrorMessage(error.code) };
+  }
+};
+
+// Helper to sync Firestore user data after login
+const syncUserDocument = async (user: User) => {
+  try {
+    const userDoc = await getDoc(doc(getDbInstance(), 'users', user.uid));
+    if (!userDoc.exists()) {
+      await createUserDocument(user);
+    } else {
+      await updateUserLastLogin(user.uid);
+    }
+  } catch (e) {
+    console.warn('Could not sync user document:', e);
   }
 };
 
@@ -178,7 +169,15 @@ export const resetPassword = async (email: string) => {
 };
 
 // Create user document in Firestore
-const createUserDocument = async (user: User, additionalData?: { displayName?: string; teacherId?: string; department?: string }) => {
+const createUserDocument = async (
+  user: User,
+  additionalData?: {
+    displayName?: string;
+    teacherId?: string;
+    department?: string;
+    organizationRolePreference?: 'admin' | 'teacher';
+  }
+) => {
   const userRef = doc(getDbInstance(), 'users', user.uid);
 
   const userData: UserData = {
@@ -187,6 +186,7 @@ const createUserDocument = async (user: User, additionalData?: { displayName?: s
     displayName: additionalData?.displayName || user.displayName,
     photoURL: user.photoURL,
     role: 'teacher',
+    organizationRolePreference: additionalData?.organizationRolePreference || 'teacher',
     teacherId: additionalData?.teacherId || '',
     department: additionalData?.department || '',
     createdAt: serverTimestamp(),

@@ -2,14 +2,26 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { LogOut, Menu, Home, Calendar, BarChart, FileText, Bell, Star, Shield, Building2, Users, Settings, Plane, MoreHorizontal } from "lucide-react"
+import { LogOut, Menu, Home, Calendar, BarChart, FileText, Bell, Star, Shield, Building2, Users, Settings, Plane, MoreHorizontal, UserMinus, Loader2 } from "lucide-react"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { Badge } from "@/components/ui/badge"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { useAuth } from "@/lib/firebase/AuthContext"
+import { removeMemberFromOrganization } from "@/lib/firebase/organizations"
+import { useToast } from "@/hooks/use-toast"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,12 +32,18 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 export default function Header() {
+  const router = useRouter()
   const pathname = usePathname()
-  const { user, userData, organization, signOut } = useAuth()
+  const { user, userData, organization, signOut, refreshUserData } = useAuth()
+  const { toast } = useToast()
   const [currentTime, setCurrentTime] = useState(new Date())
   const [isMounted, setIsMounted] = useState(false)
+  const [showLeaveDialog, setShowLeaveDialog] = useState(false)
+  const [isLeavingOrg, setIsLeavingOrg] = useState(false)
 
   const isOrgAdmin = userData?.organizationRole === 'admin'
+  const canAccessOrganizationMenu = !!organization?.id
+  const canLeaveOrganization = !!organization?.id && userData?.organizationRole === 'teacher'
 
   useEffect(() => {
     setIsMounted(true)
@@ -49,6 +67,40 @@ export default function Header() {
     await signOut()
   }
 
+  const handleLeaveOrganization = async () => {
+    if (!user?.uid || !organization?.id || !canLeaveOrganization) return
+
+    setIsLeavingOrg(true)
+    try {
+      const success = await removeMemberFromOrganization(organization.id, user.uid)
+      if (!success) {
+        toast({
+          title: 'Unable to leave organization',
+          description: 'Please try again.',
+          variant: 'destructive',
+        })
+        return
+      }
+
+      await refreshUserData()
+      toast({
+        title: 'Left organization',
+        description: 'You can now join another organization using an invite code.',
+      })
+      setShowLeaveDialog(false)
+      router.push('/onboarding')
+    } catch (error) {
+      console.error('Error leaving organization:', error)
+      toast({
+        title: 'Unable to leave organization',
+        description: 'Please try again.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsLeavingOrg(false)
+    }
+  }
+
   // Get display name from Firebase user or userData
   const displayName = userData?.displayName || user?.displayName || "Teacher"
   const photoURL = user?.photoURL
@@ -59,7 +111,7 @@ export default function Header() {
     { name: "Schedule", href: "/schedule", icon: <Calendar className="h-4 w-4 mr-2" /> },
     { name: "Leaves", href: "/leaves", icon: <Plane className="h-4 w-4 mr-2" /> },
   ]
-  
+
   const secondaryNavItems = [
     { name: "Statistics", href: "/statistics", icon: <BarChart className="h-4 w-4 mr-2" /> },
     { name: "Important Dates", href: "/important-dates", icon: <Star className="h-4 w-4 mr-2" /> },
@@ -109,11 +161,10 @@ export default function Header() {
               <Link
                 key={item.name}
                 href={item.href}
-                className={`text-sm font-medium flex items-center transition-all duration-200 px-4 py-2.5 rounded-lg relative group ${
-                  pathname === item.href
+                className={`text-sm font-medium flex items-center transition-all duration-200 px-4 py-2.5 rounded-lg relative group ${pathname === item.href
                     ? "text-white bg-white/25 shadow-md"
                     : "text-white/90 hover:text-white hover:bg-white/15"
-                }`}
+                  }`}
               >
                 {item.icon}
                 {item.name}
@@ -128,11 +179,10 @@ export default function Header() {
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
-                  className={`text-sm font-medium flex items-center transition-all duration-200 px-4 py-2.5 rounded-lg ${
-                    secondaryNavItems.some(i => pathname === i.href)
+                  className={`text-sm font-medium flex items-center transition-all duration-200 px-4 py-2.5 rounded-lg ${secondaryNavItems.some(i => pathname === i.href)
                       ? "text-white bg-white/25 shadow-md"
                       : "text-white/90 hover:text-white hover:bg-white/15"
-                  }`}
+                    }`}
                 >
                   <MoreHorizontal className="h-4 w-4 mr-2" />
                   More
@@ -153,18 +203,17 @@ export default function Header() {
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
-            
-            {/* Organization Menu - for org admins */}
-            {isOrgAdmin && (
+
+            {/* Organization Menu */}
+            {canAccessOrganizationMenu && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
-                    className={`text-sm font-medium flex items-center transition-all duration-200 px-4 py-2.5 rounded-lg ${
-                      pathname.startsWith('/org')
+                    className={`text-sm font-medium flex items-center transition-all duration-200 px-4 py-2.5 rounded-lg ${pathname.startsWith('/org')
                         ? "text-white bg-white/25 shadow-md"
                         : "text-white/90 hover:text-white hover:bg-white/15"
-                    }`}
+                      }`}
                   >
                     <Building2 className="h-4 w-4 mr-2" />
                     Organization
@@ -176,22 +225,33 @@ export default function Header() {
                   <Link href="/org/members">
                     <DropdownMenuItem className="cursor-pointer">
                       <Users className="h-4 w-4 mr-2" />
-                      Manage Members
+                      {isOrgAdmin ? 'Manage Members' : 'Members'}
                     </DropdownMenuItem>
                   </Link>
                   <Link href="/org/settings">
                     <DropdownMenuItem className="cursor-pointer">
                       <Settings className="h-4 w-4 mr-2" />
-                      Settings
+                      {isOrgAdmin ? 'Settings' : 'Organization'}
                     </DropdownMenuItem>
                   </Link>
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
-            
+
             <div className="ml-2">
               <ThemeToggle />
             </div>
+            {canLeaveOrganization && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowLeaveDialog(true)}
+                className="bg-red-500/15 hover:bg-red-500/25 text-white border-red-300/40 hover:border-red-300/70 font-medium shadow-md hover:shadow-lg transition-all duration-200 ml-2"
+              >
+                <UserMinus className="h-4 w-4 mr-2" />
+                Leave Org
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
@@ -219,7 +279,7 @@ export default function Header() {
                 <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
                 <SheetDescription className="sr-only">Access navigation links and your profile</SheetDescription>
                 <div className="flex flex-col h-full">
-                <div className="py-6 border-b dark:border-slate-800">
+                  <div className="py-6 border-b dark:border-slate-800">
                     <Link href="/profile" className="flex items-center gap-3 mb-3 hover:opacity-80 transition-opacity">
                       <Avatar className="h-12 w-12 bg-gradient-blue border-2 border-purple-200 dark:border-purple-700">
                         {photoURL && <AvatarImage src={photoURL} alt={displayName} />}
@@ -251,11 +311,10 @@ export default function Header() {
                       <Link
                         key={item.name}
                         href={item.href}
-                        className={`p-3 rounded-lg flex items-center font-medium transition-all duration-200 ${
-                          pathname === item.href 
-                            ? "bg-gradient-blue text-white shadow-md" 
+                        className={`p-3 rounded-lg flex items-center font-medium transition-all duration-200 ${pathname === item.href
+                            ? "bg-gradient-blue text-white shadow-md"
                             : "hover:bg-slate-100 dark:hover:bg-slate-800 dark:text-slate-200"
-                        }`}
+                          }`}
                       >
                         {item.icon}
                         {item.name}
@@ -264,16 +323,15 @@ export default function Header() {
 
                     <div className="my-2 border-t dark:border-slate-800"></div>
                     <p className="px-3 text-xs text-muted-foreground font-medium uppercase">More</p>
-                    
+
                     {secondaryNavItems.map((item) => (
                       <Link
                         key={item.name}
                         href={item.href}
-                        className={`p-3 rounded-lg flex items-center font-medium transition-all duration-200 ${
-                          pathname === item.href 
-                            ? "bg-gradient-blue text-white shadow-md" 
+                        className={`p-3 rounded-lg flex items-center font-medium transition-all duration-200 ${pathname === item.href
+                            ? "bg-gradient-blue text-white shadow-md"
                             : "hover:bg-slate-100 dark:hover:bg-slate-800 dark:text-slate-200"
-                        }`}
+                          }`}
                       >
                         {item.icon}
                         {item.name}
@@ -285,34 +343,46 @@ export default function Header() {
                         )}
                       </Link>
                     ))}
-                    
-                    {/* Organization links for admins */}
-                    {isOrgAdmin && (
+
+                    {/* Organization links */}
+                    {canAccessOrganizationMenu && (
                       <>
                         <div className="my-2 border-t dark:border-slate-800"></div>
                         <p className="px-3 text-xs text-muted-foreground font-medium uppercase">Organization</p>
                         <Link
                           href="/org/members"
-                          className={`p-3 rounded-lg flex items-center font-medium transition-all duration-200 ${
-                            pathname === "/org/members" 
-                              ? "bg-gradient-blue text-white shadow-md" 
+                          className={`p-3 rounded-lg flex items-center font-medium transition-all duration-200 ${pathname === "/org/members"
+                              ? "bg-gradient-blue text-white shadow-md"
                               : "hover:bg-slate-100 dark:hover:bg-slate-800 dark:text-slate-200"
-                          }`}
+                            }`}
                         >
                           <Users className="h-4 w-4 mr-2" />
-                          Manage Members
+                          {isOrgAdmin ? 'Manage Members' : 'Members'}
                         </Link>
                         <Link
                           href="/org/settings"
-                          className={`p-3 rounded-lg flex items-center font-medium transition-all duration-200 ${
-                            pathname === "/org/settings" 
-                              ? "bg-gradient-blue text-white shadow-md" 
+                          className={`p-3 rounded-lg flex items-center font-medium transition-all duration-200 ${pathname === "/org/settings"
+                              ? "bg-gradient-blue text-white shadow-md"
                               : "hover:bg-slate-100 dark:hover:bg-slate-800 dark:text-slate-200"
-                          }`}
+                            }`}
                         >
                           <Settings className="h-4 w-4 mr-2" />
-                          Org Settings
+                          {isOrgAdmin ? 'Org Settings' : 'Organization'}
                         </Link>
+                      </>
+                    )}
+
+                    {canLeaveOrganization && (
+                      <>
+                        <div className="my-2 border-t dark:border-slate-800"></div>
+                        <Button
+                          onClick={() => setShowLeaveDialog(true)}
+                          variant="ghost"
+                          className="w-full justify-start p-3 rounded-lg font-medium text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20"
+                        >
+                          <UserMinus className="h-4 w-4 mr-2" />
+                          Leave Organization
+                        </Button>
                       </>
                     )}
                   </nav>
@@ -328,6 +398,34 @@ export default function Header() {
           </div>
         </div>
       </div>
+
+      <AlertDialog open={showLeaveDialog} onOpenChange={setShowLeaveDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Leave Organization?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You will lose access to your current organization until you join again using an invite code.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isLeavingOrg}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleLeaveOrganization}
+              disabled={isLeavingOrg}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isLeavingOrg ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Leaving...
+                </>
+              ) : (
+                'Leave Organization'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </header>
   )
 }
