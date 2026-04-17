@@ -2,17 +2,15 @@ import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 
 // Firebase configuration - cross-platform env lookup.
 // Web (Next.js): NEXT_PUBLIC_*; Expo: EXPO_PUBLIC_*
-const env = (name: string) => process.env[name];
-
 const firebaseConfig = {
-  apiKey: env('NEXT_PUBLIC_FIREBASE_API_KEY') || env('EXPO_PUBLIC_FIREBASE_API_KEY'),
-  authDomain: env('NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN') || env('EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN'),
-  projectId: env('NEXT_PUBLIC_FIREBASE_PROJECT_ID') || env('EXPO_PUBLIC_FIREBASE_PROJECT_ID'),
-  storageBucket: env('NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET') || env('EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET'),
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
   messagingSenderId:
-    env('NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID') || env('EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID'),
-  appId: env('NEXT_PUBLIC_FIREBASE_APP_ID') || env('EXPO_PUBLIC_FIREBASE_APP_ID'),
-  measurementId: env('NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID') || env('EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID')
+    process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
 // Validate required environment variables (Static check required for Next.js Webpack)
