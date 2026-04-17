@@ -1,37 +1,19 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 
-// Firebase configuration - uses environment variables (required)
-// Next.js uses process.env.NEXT_PUBLIC_*, Expo uses Constants.expoConfig?.extra?
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
-};
+// Firebase configuration - cross-platform env lookup.
+// Web (Next.js): NEXT_PUBLIC_*; Expo: EXPO_PUBLIC_*
+const env = (name: string) => process.env[name];
 
-// --- Cross-Platform Environment Injection ---
-// For React Native (Expo), if process.env is empty, we try to get from Expo Constants
-if (!firebaseConfig.apiKey) {
-    try {
-        // Dynamic import to avoid breaking web builds
-        const Constants = require('expo-constants').default;
-        const extra = Constants.expoConfig?.extra || {};
-        if (extra.firebaseApiKey) {
-            firebaseConfig.apiKey = extra.firebaseApiKey;
-            firebaseConfig.authDomain = extra.firebaseAuthDomain;
-            firebaseConfig.projectId = extra.firebaseProjectId;
-            firebaseConfig.storageBucket = extra.firebaseStorageBucket;
-            firebaseConfig.messagingSenderId = extra.firebaseMessagingSenderId;
-            firebaseConfig.appId = extra.firebaseAppId;
-            firebaseConfig.measurementId = extra.firebaseMeasurementId;
-        }
-    } catch (e) {
-        // Not in an Expo environment or expo-constants not available
-    }
-}
+const firebaseConfig = {
+  apiKey: env('NEXT_PUBLIC_FIREBASE_API_KEY') || env('EXPO_PUBLIC_FIREBASE_API_KEY'),
+  authDomain: env('NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN') || env('EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN'),
+  projectId: env('NEXT_PUBLIC_FIREBASE_PROJECT_ID') || env('EXPO_PUBLIC_FIREBASE_PROJECT_ID'),
+  storageBucket: env('NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET') || env('EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET'),
+  messagingSenderId:
+    env('NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID') || env('EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID'),
+  appId: env('NEXT_PUBLIC_FIREBASE_APP_ID') || env('EXPO_PUBLIC_FIREBASE_APP_ID'),
+  measurementId: env('NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID') || env('EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID')
+};
 
 // Validate required environment variables (Static check required for Next.js Webpack)
 // Only warn on Web if missing, Native will handle its own errors
