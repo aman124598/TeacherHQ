@@ -61,10 +61,79 @@ export default function LoginPage() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-blue-50/30 dark:from-slate-900 dark:to-slate-800">
-        <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin h-10 w-10 border-4 border-purple-600 border-t-transparent rounded-full"></div>
-          <p className="text-muted-foreground">Loading...</p>
+      <div className="min-h-screen flex flex-col md:flex-row overflow-hidden bg-gradient-to-br from-gray-50 to-blue-50/30 dark:from-slate-900 dark:to-slate-800">
+        <div className="hidden md:flex md:w-1/2 bg-gradient-blue relative items-center justify-center p-12 overflow-hidden">
+          <div className="absolute inset-0 opacity-20">
+            <div className="absolute top-10 left-10 h-72 w-72 rounded-full bg-white/80 blur-3xl skeleton" />
+            <div className="absolute bottom-20 right-20 h-96 w-96 rounded-full bg-purple-300/80 blur-3xl skeleton" style={{ animationDelay: '1s' }} />
+          </div>
+
+          <div className="max-w-lg text-white relative z-10 w-full space-y-6">
+            <div className="h-20 w-20 rounded-3xl skeleton" />
+            <div className="space-y-4">
+              <div className="h-10 w-4/5 rounded-2xl skeleton" />
+              <div className="h-4 w-full rounded-full skeleton" />
+              <div className="h-4 w-11/12 rounded-full skeleton" />
+              <div className="h-4 w-4/5 rounded-full skeleton" />
+            </div>
+            <div className="space-y-4">
+              <div className="flex items-start gap-3 rounded-2xl bg-white/10 p-4 skeleton">
+                <div className="h-6 w-6 rounded-full skeleton" />
+                <div className="flex-1 space-y-3">
+                  <div className="h-4 w-40 rounded-full skeleton" />
+                  <div className="h-3 w-11/12 rounded-full skeleton" />
+                </div>
+              </div>
+              <div className="flex items-start gap-3 rounded-2xl bg-white/10 p-4 skeleton">
+                <div className="h-6 w-6 rounded-full skeleton" />
+                <div className="flex-1 space-y-3">
+                  <div className="h-4 w-32 rounded-full skeleton" />
+                  <div className="h-3 w-10/12 rounded-full skeleton" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex-1 flex items-center justify-center p-6 md:p-12 bg-gradient-to-br from-gray-50 to-blue-50/30 dark:from-slate-900 dark:to-slate-800 relative">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-purple opacity-10 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-teal opacity-10 rounded-full blur-3xl"></div>
+
+          <div className="w-full max-w-md rounded-3xl border border-white/70 bg-white/85 p-6 shadow-premium backdrop-blur-sm dark:border-slate-700/70 dark:bg-slate-800/90 space-y-6">
+            <div className="flex justify-center">
+              <div className="h-16 w-16 rounded-2xl skeleton" />
+            </div>
+            <div className="space-y-3">
+              <div className="h-8 w-40 mx-auto rounded-full skeleton" />
+              <div className="h-4 w-48 mx-auto rounded-full skeleton" />
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <div className="h-4 w-24 rounded-full skeleton" />
+                <div className="h-11 w-full rounded-2xl skeleton" />
+              </div>
+              <div className="space-y-2">
+                <div className="h-4 w-20 rounded-full skeleton" />
+                <div className="h-11 w-full rounded-2xl skeleton" />
+              </div>
+              <div className="flex justify-end">
+                <div className="h-4 w-24 rounded-full skeleton" />
+              </div>
+              <div className="h-11 w-full rounded-2xl skeleton" />
+            </div>
+
+            <div className="relative py-2">
+              <div className="h-px w-full bg-slate-200 dark:bg-slate-700" />
+            </div>
+
+            <div className="h-11 w-full rounded-2xl skeleton" />
+
+            <div className="space-y-3">
+              <div className="h-4 w-40 mx-auto rounded-full skeleton" />
+              <div className="h-4 w-28 mx-auto rounded-full skeleton" />
+            </div>
+          </div>
         </div>
       </div>
     )
