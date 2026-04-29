@@ -4,4 +4,5 @@
     <string name="title_activity_main">Teacher Attendance</string>
     <string name="package_name">com.app.teacherhq</string>
     <string name="custom_url_scheme">com.app.teacherhq</string>
+    <string name="server_client_id">70105143544-8o52mvejldkrmcu60gk96ng2bsvgaram.apps.googleusercontent.com</string>
 </resources>
