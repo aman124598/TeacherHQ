@@ -16,7 +16,7 @@ export function ApkDownloadPopup() {
         return; // Don't show if closed within 24 hours
       }
     }
-    
+
     // Slight delay so it doesn't immediately interrupt page load
     const timer = setTimeout(() => {
       setIsVisible(true);
@@ -56,8 +56,8 @@ export function ApkDownloadPopup() {
           </Button>
         </div>
       </div>
-      <button 
-        onClick={closePopup} 
+      <button
+        onClick={closePopup}
         className="text-muted-foreground hover:bg-accent p-1 rounded-full shrink-0 transition-colors absolute top-2 right-2"
         aria-label="Close"
       >
