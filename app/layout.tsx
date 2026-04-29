@@ -7,11 +7,12 @@ import { DarkModeWrapper } from "@/components/dark-mode-wrapper"
 import { AuthProvider } from "@/lib/firebase/AuthContext"
 import { Analytics } from "@vercel/analytics/next"
 import { SpeedInsights } from "@vercel/speed-insights/next"
+import { ApkDownloadPopup } from "@/components/apk-download-popup"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Teacher Attendance System",
+  title: "TeacherHQ",
   description: "Location-based attendance system for teachers",
   generator: 'v0.dev'
 }
@@ -24,6 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <AuthProvider>
             <DarkModeWrapper>
               {children}
+              <ApkDownloadPopup />
             </DarkModeWrapper>
           </AuthProvider>
         </ThemeProvider>

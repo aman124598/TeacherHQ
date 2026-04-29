@@ -27,13 +27,13 @@ export default function LoginPage() {
     setIsLoading(true)
 
     const result = await signInWithEmail(email, password)
-    
+
     if (result.success) {
       router.push("/dashboard")
     } else {
       setError(result.error || "Login failed")
     }
-    
+
     setIsLoading(false)
   }
 
@@ -43,7 +43,7 @@ export default function LoginPage() {
 
     try {
       const result = await signInWithGoogle()
-      
+
       if (result.success && result.user) {
         // Popup successful, redirect to dashboard
         console.log('Google login successful, redirecting to dashboard...'); // DEBUG LOG
@@ -148,7 +148,7 @@ export default function LoginPage() {
           <div className="absolute top-10 left-10 w-72 h-72 bg-white rounded-full blur-3xl animate-pulse"></div>
           <div className="absolute bottom-20 right-20 w-96 h-96 bg-purple-300 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
         </div>
-        
+
         <div className="max-w-lg text-white relative z-10 animate-slide-in-left">
           <div className="mb-8">
             <School className="h-20 w-20 mb-6 float-animation drop-shadow-2xl" />
@@ -184,7 +184,7 @@ export default function LoginPage() {
         {/* Decorative elements */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-purple opacity-10 rounded-full blur-3xl"></div>
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-teal opacity-10 rounded-full blur-3xl"></div>
-        
+
         <Card className="w-full max-w-md shadow-premium border-0 dark:border dark:border-slate-700 animate-slide-in-right backdrop-blur-sm bg-white/95 dark:bg-slate-800/95 relative z-10">
           <CardHeader className="space-y-2 pb-4">
             <div className="flex justify-center mb-2">
@@ -207,7 +207,7 @@ export default function LoginPage() {
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
-              
+
               <div className="space-y-2">
                 <label htmlFor="email" className="text-sm font-semibold text-gray-700 dark:text-gray-200">
                   Email Address
@@ -225,7 +225,7 @@ export default function LoginPage() {
                   />
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <label htmlFor="password" className="text-sm font-semibold text-gray-700 dark:text-gray-200">
                   Password
@@ -256,10 +256,10 @@ export default function LoginPage() {
                   Forgot password?
                 </Link>
               </div>
-              
-              <Button 
-                type="submit" 
-                className="w-full h-11 bg-gradient-blue hover:opacity-90 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 btn-glow text-base" 
+
+              <Button
+                type="submit"
+                className="w-full h-11 bg-gradient-blue hover:opacity-90 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 btn-glow text-base"
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -282,7 +282,7 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <Button 
+            <Button
               type="button"
               variant="outline"
               onClick={handleGoogleLogin}

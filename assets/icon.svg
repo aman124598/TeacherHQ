@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <rect width="1024" height="1024" fill="#4F46E5"/>
+  <path d="M512 200 L850 400 L850 700 L512 900 L174 700 L174 400 Z" fill="#4338CA"/>
+  <text x="512" y="550" font-family="Arial, sans-serif" font-size="320" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="middle">THQ</text>
+  <text x="512" y="800" font-family="Arial, sans-serif" font-size="80" font-weight="bold" fill="#A5B4FC" text-anchor="middle" dominant-baseline="middle">TeacherHQ</text>
+</svg>
