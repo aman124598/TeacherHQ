@@ -18,7 +18,7 @@ const isCapacitorBuild = process.env.CAPACITOR_BUILD === 'true';
 const nextConfig = {
   // Enable static export only for Capacitor mobile app builds
   // For web (Vercel) deployment, this should be undefined
-  ...(isCapacitorBuild && { output: 'export' }),
+  ...(isCapacitorBuild && { output: 'export', trailingSlash: true }),
   eslint: {
     ignoreDuringBuilds: true,
   },

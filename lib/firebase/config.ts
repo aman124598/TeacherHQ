@@ -32,7 +32,20 @@ let app: FirebaseApp | null = null;
 
 export const getFirebaseApp = () => {
   if (!app) {
-    app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+    try {
+      if (getApps().length > 0) {
+        app = getApp();
+      } else {
+        if (!firebaseConfig.apiKey) {
+          console.error("Firebase Initialization Error: API Key is completely missing! This usually means your GitHub Actions didn't have access to your NEXT_PUBLIC repository secrets during compilation.");
+        }
+        app = initializeApp(firebaseConfig);
+      }
+    } catch (error) {
+      console.error('Error initializing Firebase:', error);
+      // Return a dummy app to prevent hard crashes on client
+      return {} as FirebaseApp;
+    }
   }
   return app;
 };
